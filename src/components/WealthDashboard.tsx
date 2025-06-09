@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { WealthProjection } from '@/pages/Index';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { WealthProjection, IncomeSource, ExpenseCategory } from '@/pages/Index';
 import { TrendingUp, DollarSign, PiggyBank, Target } from 'lucide-react';
 
 interface WealthDashboardProps {
@@ -14,6 +14,8 @@ interface WealthDashboardProps {
   setInvestmentReturn: (value: number) => void;
   projectionYears: number;
   setProjectionYears: (value: number) => void;
+  incomes: IncomeSource[];
+  expenses: ExpenseCategory[];
 }
 
 export const WealthDashboard: React.FC<WealthDashboardProps> = ({
@@ -23,7 +25,9 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
   investmentReturn,
   setInvestmentReturn,
   projectionYears,
-  setProjectionYears
+  setProjectionYears,
+  incomes,
+  expenses
 }) => {
   const currentYear = projections[0] || { grossIncome: 0, netIncome: 0, savings: 0, taxes: 0 };
   const finalYear = projections[projections.length - 1] || { cumulativeWealth: initialWealth };
@@ -161,6 +165,79 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
             <p className="text-xs text-orange-600 mt-1">
               In {projectionYears} years
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Income and Expenses Summary Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Income Sources Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Growth</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {incomes.map((income) => (
+                  <TableRow key={income.id}>
+                    <TableCell className="font-medium">{income.name}</TableCell>
+                    <TableCell className="capitalize">{income.type}</TableCell>
+                    <TableCell>
+                      {formatCurrency(income.amount)}
+                      <span className="text-xs text-slate-500 ml-1">
+                        /{income.frequency === 'monthly' ? 'mo' : 'yr'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{income.growthRate}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Expenses Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Growth</TableHead>
+                  <TableHead>Type</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expenses.map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell className="font-medium">{expense.name}</TableCell>
+                    <TableCell>
+                      {formatCurrency(expense.amount)}
+                      <span className="text-xs text-slate-500 ml-1">
+                        /{expense.frequency === 'monthly' ? 'mo' : 'yr'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{expense.growthRate}%</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-1 rounded ${expense.isFixed ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                        {expense.isFixed ? 'Fixed' : 'Variable'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

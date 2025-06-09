@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { WealthDashboard } from '@/components/WealthDashboard';
 import { IncomeManager } from '@/components/IncomeManager';
@@ -9,7 +8,7 @@ import { EquityManager } from '@/components/EquityManager';
 import { RealEstateManager } from '@/components/RealEstateManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Calculator, PieChart, home } from 'lucide-react';
+import { TrendingUp, DollarSign, Calculator, PieChart, Home } from 'lucide-react';
 
 export interface IncomeSource {
   id: string;
@@ -225,7 +224,9 @@ const Index = () => {
             projectionYears={projectionYears}
             setProjectionYears={setProjectionYears}
             incomes={incomes}
+            setIncomes={setIncomes}
             expenses={expenses}
+            setExpenses={setExpenses}
           />
         </div>
 
@@ -244,7 +245,7 @@ const Index = () => {
               Equity
             </TabsTrigger>
             <TabsTrigger value="realestate" className="flex items-center gap-2">
-              <home className="w-4 h-4" />
+              <Home className="w-4 h-4" />
               Real Estate
             </TabsTrigger>
             <TabsTrigger value="taxes" className="flex items-center gap-2">

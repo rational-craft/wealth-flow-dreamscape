@@ -15,7 +15,9 @@ interface WealthDashboardProps {
   projectionYears: number;
   setProjectionYears: (value: number) => void;
   incomes: IncomeSource[];
+  setIncomes: (incomes: IncomeSource[]) => void;
   expenses: ExpenseCategory[];
+  setExpenses: (expenses: ExpenseCategory[]) => void;
 }
 
 export const WealthDashboard: React.FC<WealthDashboardProps> = ({
@@ -27,10 +29,24 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
   projectionYears,
   setProjectionYears,
   incomes,
-  expenses
+  setIncomes,
+  expenses,
+  setExpenses
 }) => {
   const currentYear = projections[0] || { grossIncome: 0, netIncome: 0, savings: 0, taxes: 0 };
   const finalYear = projections[projections.length - 1] || { cumulativeWealth: initialWealth };
+
+  const updateIncome = (id: string, updates: Partial<IncomeSource>) => {
+    setIncomes(incomes.map(income => 
+      income.id === id ? { ...income, ...updates } : income
+    ));
+  };
+
+  const updateExpense = (id: string, updates: Partial<ExpenseCategory>) => {
+    setExpenses(expenses.map(expense => 
+      expense.id === id ? { ...expense, ...updates } : expense
+    ));
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -169,7 +185,7 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
         </Card>
       </div>
 
-      {/* Income and Expenses Summary Tables */}
+      {/* Editable Income and Expenses Summary Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -188,15 +204,35 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
               <TableBody>
                 {incomes.map((income) => (
                   <TableRow key={income.id}>
-                    <TableCell className="font-medium">{income.name}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={income.name}
+                        onChange={(e) => updateIncome(income.id, { name: e.target.value })}
+                        className="min-w-[120px]"
+                      />
+                    </TableCell>
                     <TableCell className="capitalize">{income.type}</TableCell>
                     <TableCell>
-                      {formatCurrency(income.amount)}
+                      <Input
+                        type="number"
+                        value={income.amount}
+                        onChange={(e) => updateIncome(income.id, { amount: Number(e.target.value) })}
+                        className="min-w-[100px]"
+                      />
                       <span className="text-xs text-slate-500 ml-1">
                         /{income.frequency === 'monthly' ? 'mo' : 'yr'}
                       </span>
                     </TableCell>
-                    <TableCell>{income.growthRate}%</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={income.growthRate}
+                        onChange={(e) => updateIncome(income.id, { growthRate: Number(e.target.value) })}
+                        className="min-w-[60px]"
+                      />
+                      <span className="text-xs text-slate-500 ml-1">%</span>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -221,14 +257,34 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
               <TableBody>
                 {expenses.map((expense) => (
                   <TableRow key={expense.id}>
-                    <TableCell className="font-medium">{expense.name}</TableCell>
                     <TableCell>
-                      {formatCurrency(expense.amount)}
+                      <Input
+                        value={expense.name}
+                        onChange={(e) => updateExpense(expense.id, { name: e.target.value })}
+                        className="min-w-[120px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={expense.amount}
+                        onChange={(e) => updateExpense(expense.id, { amount: Number(e.target.value) })}
+                        className="min-w-[100px]"
+                      />
                       <span className="text-xs text-slate-500 ml-1">
                         /{expense.frequency === 'monthly' ? 'mo' : 'yr'}
                       </span>
                     </TableCell>
-                    <TableCell>{expense.growthRate}%</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={expense.growthRate}
+                        onChange={(e) => updateExpense(expense.id, { growthRate: Number(e.target.value) })}
+                        className="min-w-[60px]"
+                      />
+                      <span className="text-xs text-slate-500 ml-1">%</span>
+                    </TableCell>
                     <TableCell>
                       <span className={`text-xs px-2 py-1 rounded ${expense.isFixed ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
                         {expense.isFixed ? 'Fixed' : 'Variable'}

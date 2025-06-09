@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RealEstateProperty } from '@/pages/Index';
-import { Plus, Trash2, home } from 'lucide-react';
+import { Plus, Trash2, Home } from 'lucide-react';
 
 interface RealEstateManagerProps {
   properties: RealEstateProperty[];
@@ -18,7 +18,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
     purchasePrice: 0,
     downPayment: 0,
     loanAmount: 0,
-    interestRate: 4.5,
+    interestRate: 0,
     loanTermYears: 30,
     purchaseYear: 1,
     appreciationRate: 3,
@@ -33,8 +33,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
         name: newProperty.name,
         purchasePrice: newProperty.purchasePrice,
         downPayment: newProperty.downPayment || 0,
-        loanAmount: newProperty.loanAmount || (newProperty.purchasePrice - (newProperty.downPayment || 0)),
-        interestRate: newProperty.interestRate || 4.5,
+        loanAmount: newProperty.loanAmount || 0,
+        interestRate: newProperty.interestRate || 0,
         loanTermYears: newProperty.loanTermYears || 30,
         purchaseYear: newProperty.purchaseYear,
         appreciationRate: newProperty.appreciationRate || 3,
@@ -47,7 +47,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
         purchasePrice: 0,
         downPayment: 0,
         loanAmount: 0,
-        interestRate: 4.5,
+        interestRate: 0,
         loanTermYears: 30,
         purchaseYear: 1,
         appreciationRate: 3,
@@ -76,17 +76,10 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
     }).format(amount);
   };
 
-  const calculateMonthlyPayment = (principal: number, rate: number, years: number) => {
-    const monthlyRate = rate / 100 / 12;
-    const numPayments = years * 12;
-    if (monthlyRate === 0) return principal / numPayments;
-    return principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
-        <home className="text-blue-600" />
+        <Home className="text-blue-600" />
         <h3 className="text-xl font-semibold text-slate-800">Real Estate Properties</h3>
       </div>
 
@@ -103,7 +96,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 id="property-name"
                 value={newProperty.name}
                 onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
-                placeholder="e.g., Primary Home, Investment Property"
+                placeholder="e.g., Primary Residence"
               />
             </div>
 
@@ -113,15 +106,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 id="purchase-price"
                 type="number"
                 value={newProperty.purchasePrice}
-                onChange={(e) => {
-                  const price = Number(e.target.value);
-                  setNewProperty({ 
-                    ...newProperty, 
-                    purchasePrice: price,
-                    loanAmount: price - (newProperty.downPayment || 0)
-                  });
-                }}
-                placeholder="0"
+                onChange={(e) => setNewProperty({ ...newProperty, purchasePrice: Number(e.target.value) })}
+                placeholder="500000"
               />
             </div>
 
@@ -131,15 +117,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 id="down-payment"
                 type="number"
                 value={newProperty.downPayment}
-                onChange={(e) => {
-                  const down = Number(e.target.value);
-                  setNewProperty({ 
-                    ...newProperty, 
-                    downPayment: down,
-                    loanAmount: (newProperty.purchasePrice || 0) - down
-                  });
-                }}
-                placeholder="0"
+                onChange={(e) => setNewProperty({ ...newProperty, downPayment: Number(e.target.value) })}
+                placeholder="100000"
               />
             </div>
 
@@ -150,7 +129,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 type="number"
                 value={newProperty.loanAmount}
                 onChange={(e) => setNewProperty({ ...newProperty, loanAmount: Number(e.target.value) })}
-                placeholder="0"
+                placeholder="400000"
               />
             </div>
 
@@ -162,7 +141,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 step="0.1"
                 value={newProperty.interestRate}
                 onChange={(e) => setNewProperty({ ...newProperty, interestRate: Number(e.target.value) })}
-                placeholder="4.5"
+                placeholder="6.5"
               />
             </div>
 
@@ -203,7 +182,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
             </div>
 
             <div>
-              <Label htmlFor="maintenance-rate">Maintenance Rate (% of value)</Label>
+              <Label htmlFor="maintenance-rate">Maintenance Rate (%)</Label>
               <Input
                 id="maintenance-rate"
                 type="number"
@@ -211,6 +190,18 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 value={newProperty.maintenanceRate}
                 onChange={(e) => setNewProperty({ ...newProperty, maintenanceRate: Number(e.target.value) })}
                 placeholder="1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="property-tax-rate">Property Tax Rate (%)</Label>
+              <Input
+                id="property-tax-rate"
+                type="number"
+                step="0.1"
+                value={newProperty.propertyTaxRate}
+                onChange={(e) => setNewProperty({ ...newProperty, propertyTaxRate: Number(e.target.value) })}
+                placeholder="1.2"
               />
             </div>
           </div>
@@ -229,46 +220,94 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
             <CardTitle>Property Portfolio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Property</TableHead>
-                    <TableHead>Purchase Price</TableHead>
-                    <TableHead>Down Payment</TableHead>
-                    <TableHead>Loan Amount</TableHead>
-                    <TableHead>Monthly Payment</TableHead>
-                    <TableHead>Purchase Year</TableHead>
-                    <TableHead>Appreciation</TableHead>
-                    <TableHead>Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Purchase Price</TableHead>
+                  <TableHead>Down Payment</TableHead>
+                  <TableHead>Loan Amount</TableHead>
+                  <TableHead>Interest Rate</TableHead>
+                  <TableHead>Purchase Year</TableHead>
+                  <TableHead>Appreciation Rate</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {properties.map((property) => (
+                  <TableRow key={property.id}>
+                    <TableCell>
+                      <Input
+                        value={property.name}
+                        onChange={(e) => updateProperty(property.id, { name: e.target.value })}
+                        className="min-w-[150px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={property.purchasePrice}
+                        onChange={(e) => updateProperty(property.id, { purchasePrice: Number(e.target.value) })}
+                        className="min-w-[120px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={property.downPayment}
+                        onChange={(e) => updateProperty(property.id, { downPayment: Number(e.target.value) })}
+                        className="min-w-[120px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={property.loanAmount}
+                        onChange={(e) => updateProperty(property.id, { loanAmount: Number(e.target.value) })}
+                        className="min-w-[120px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={property.interestRate}
+                        onChange={(e) => updateProperty(property.id, { interestRate: Number(e.target.value) })}
+                        className="min-w-[80px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={property.purchaseYear}
+                        onChange={(e) => updateProperty(property.id, { purchaseYear: Number(e.target.value) })}
+                        className="min-w-[80px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={property.appreciationRate}
+                        onChange={(e) => updateProperty(property.id, { appreciationRate: Number(e.target.value) })}
+                        className="min-w-[80px]"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeProperty(property.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {properties.map((property) => (
-                    <TableRow key={property.id}>
-                      <TableCell className="font-medium">{property.name}</TableCell>
-                      <TableCell>{formatCurrency(property.purchasePrice)}</TableCell>
-                      <TableCell>{formatCurrency(property.downPayment)}</TableCell>
-                      <TableCell>{formatCurrency(property.loanAmount)}</TableCell>
-                      <TableCell>
-                        {formatCurrency(calculateMonthlyPayment(property.loanAmount, property.interestRate, property.loanTermYears))}
-                      </TableCell>
-                      <TableCell>{property.purchaseYear}</TableCell>
-                      <TableCell>{property.appreciationRate}%</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeProperty(property.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

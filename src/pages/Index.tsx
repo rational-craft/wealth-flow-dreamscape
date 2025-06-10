@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Calculator, PieChart, Home } from 'lucide-react';
 import { calculateTotalTax, getEffectiveTaxRate } from '@/utils/taxCalculator';
+import { DataTable } from '@/components/DataTable';
 
 export interface IncomeSource {
   id: string;
@@ -232,7 +233,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="income" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white shadow-sm">
+          <TabsList className="grid w-full grid-cols-7 bg-white shadow-sm">
             <TabsTrigger value="income" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Income
@@ -256,6 +257,10 @@ const Index = () => {
             <TabsTrigger value="forecast" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Forecast
+            </TabsTrigger>
+            <TabsTrigger value="data" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Data
             </TabsTrigger>
           </TabsList>
 
@@ -292,6 +297,19 @@ const Index = () => {
           <TabsContent value="forecast" className="space-y-6">
             <Card className="p-6">
               <ForecastChart projections={projections} />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="data" className="space-y-6">
+            <Card className="p-6">
+              <DataTable 
+                incomes={incomes}
+                expenses={expenses}
+                equityPayouts={equityPayouts}
+                properties={properties}
+                projections={projections}
+                projectionYears={projectionYears}
+              />
             </Card>
           </TabsContent>
         </Tabs>

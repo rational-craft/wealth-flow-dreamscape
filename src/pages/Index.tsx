@@ -9,7 +9,7 @@ import { RealEstateManager } from '@/components/RealEstateManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Calculator, PieChart, Home } from 'lucide-react';
-import { calculateTotalTax, getEffectiveTaxRate } from '@/utils/taxCalculator';
+import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 import { DataTable } from '@/components/DataTable';
 
 export interface IncomeSource {

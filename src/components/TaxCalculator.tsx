@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -180,7 +179,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FEDERAL_TAX_BRACKETS.map((bracket, index) => (
+            {FEDERAL_TAX_BRACKETS.single.map((bracket, index) => (
               <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
                 <span className="text-sm">
                   {formatCurrency(bracket.min)} - {bracket.max === Infinity ? '∞' : formatCurrency(bracket.max)}

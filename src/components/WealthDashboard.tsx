@@ -1,8 +1,10 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { WealthProjection, IncomeSource, ExpenseCategory } from '@/pages/Index';
 import { TrendingUp, DollarSign, PiggyBank, Target } from 'lucide-react';
@@ -43,8 +45,16 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
   expenses,
   setExpenses
 }) => {
-  const currentYear = projections[0] || { grossIncome: 0, netIncome: 0, savings: 0, taxes: 0 };
-  const finalYear = projections[projections.length - 1] || { cumulativeWealth: initialWealth };
+  const [selectedYear, setSelectedYear] = useState(1);
+  
+  // Get data for the selected year, fallback to year 1 if not available
+  const selectedYearData = projections.find(p => p.year === selectedYear) || projections[0] || { 
+    grossIncome: 0, 
+    netIncome: 0, 
+    savings: 0, 
+    cumulativeWealth: initialWealth,
+    taxes: 0 
+  };
 
   const updateIncome = (id: string, updates: Partial<IncomeSource>) => {
     setIncomes(incomes.map(income => 
@@ -67,8 +77,13 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
     }).format(amount);
   };
 
+  const handleYearChange = (value: number[]) => {
+    setSelectedYear(value[0]);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Configuration Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="border-blue-200">
           <CardHeader className="pb-3">
@@ -169,6 +184,33 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
         </Card>
       </div>
 
+      {/* Year Slider */}
+      <Card className="border-slate-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-slate-700 flex items-center justify-between">
+            Year Selection
+            <span className="text-2xl font-bold text-slate-800">Year {selectedYear}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Slider
+              value={[selectedYear]}
+              onValueChange={handleYearChange}
+              max={projectionYears}
+              min={1}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>Year 1</span>
+              <span>Year {projectionYears}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Year-specific Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -179,10 +221,10 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-800">
-              {formatCurrency(currentYear.grossIncome)}
+              {formatCurrency(selectedYearData.grossIncome)}
             </div>
             <p className="text-xs text-blue-600 mt-1">
-              Before taxes and deductions
+              Year {selectedYear} - Before taxes
             </p>
           </CardContent>
         </Card>
@@ -196,10 +238,10 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-800">
-              {formatCurrency(currentYear.netIncome)}
+              {formatCurrency(selectedYearData.netIncome)}
             </div>
             <p className="text-xs text-green-600 mt-1">
-              After taxes
+              Year {selectedYear} - After taxes
             </p>
           </CardContent>
         </Card>
@@ -213,10 +255,10 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-800">
-              {formatCurrency(currentYear.savings)}
+              {formatCurrency(selectedYearData.savings)}
             </div>
             <p className="text-xs text-purple-600 mt-1">
-              Net income minus expenses
+              Year {selectedYear} - Net income minus expenses
             </p>
           </CardContent>
         </Card>
@@ -230,10 +272,10 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-800">
-              {formatCurrency(finalYear.cumulativeWealth)}
+              {formatCurrency(selectedYearData.cumulativeWealth)}
             </div>
             <p className="text-xs text-orange-600 mt-1">
-              In {projectionYears} years
+              End of Year {selectedYear}
             </p>
           </CardContent>
         </Card>

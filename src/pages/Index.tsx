@@ -111,6 +111,8 @@ const Index = () => {
   const [initialWealth, setInitialWealth] = useState(50000);
   const [investmentReturn, setInvestmentReturn] = useState(7);
   const [projectionYears, setProjectionYears] = useState(10);
+  const [state, setState] = useState<keyof typeof STATE_TAX_RATES>('California');
+  const [filingStatus, setFilingStatus] = useState<keyof typeof FEDERAL_TAX_BRACKETS>('single');
 
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
@@ -125,14 +127,14 @@ const Index = () => {
         const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
         const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
         grossIncome += adjustedAmount;
-        taxes += calculateTotalTax(adjustedAmount, income.type);
+        taxes += calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
       });
 
       // Add equity payouts for this year
       const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
       yearlyEquityPayouts.forEach(payout => {
         grossIncome += payout.amount;
-        taxes += calculateTotalTax(payout.amount, 'equity');
+        taxes += calculateTotalTax(payout.amount, 'equity', state, filingStatus);
       });
 
       const netIncome = grossIncome - taxes;
@@ -225,6 +227,10 @@ const Index = () => {
             setInvestmentReturn={setInvestmentReturn}
             projectionYears={projectionYears}
             setProjectionYears={setProjectionYears}
+            state={state}
+            setState={setState}
+            filingStatus={filingStatus}
+            setFilingStatus={setFilingStatus}
             incomes={incomes}
             setIncomes={setIncomes}
             expenses={expenses}

@@ -2,9 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { WealthProjection, IncomeSource, ExpenseCategory } from '@/pages/Index';
 import { TrendingUp, DollarSign, PiggyBank, Target } from 'lucide-react';
+import { STATE_TAX_RATES, FILING_STATUSES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 
 interface WealthDashboardProps {
   projections: WealthProjection[];
@@ -14,6 +16,10 @@ interface WealthDashboardProps {
   setInvestmentReturn: (value: number) => void;
   projectionYears: number;
   setProjectionYears: (value: number) => void;
+  state: keyof typeof STATE_TAX_RATES;
+  setState: (state: keyof typeof STATE_TAX_RATES) => void;
+  filingStatus: keyof typeof FEDERAL_TAX_BRACKETS;
+  setFilingStatus: (status: keyof typeof FEDERAL_TAX_BRACKETS) => void;
   incomes: IncomeSource[];
   setIncomes: (incomes: IncomeSource[]) => void;
   expenses: ExpenseCategory[];
@@ -28,6 +34,10 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
   setInvestmentReturn,
   projectionYears,
   setProjectionYears,
+  state,
+  setState,
+  filingStatus,
+  setFilingStatus,
   incomes,
   setIncomes,
   expenses,
@@ -59,7 +69,7 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="border-blue-200">
           <CardHeader className="pb-3">
             <Label htmlFor="initial-wealth" className="text-sm font-medium text-slate-700">
@@ -111,6 +121,50 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
               onChange={(e) => setProjectionYears(Number(e.target.value))}
               className="text-lg font-semibold"
             />
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-200">
+          <CardHeader className="pb-3">
+            <Label className="text-sm font-medium text-slate-700">
+              State
+            </Label>
+          </CardHeader>
+          <CardContent>
+            <Select value={state} onValueChange={(value) => setState(value as keyof typeof STATE_TAX_RATES)}>
+              <SelectTrigger className="text-lg font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(STATE_TAX_RATES).map((stateName) => (
+                  <SelectItem key={stateName} value={stateName}>
+                    {stateName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Card className="border-indigo-200">
+          <CardHeader className="pb-3">
+            <Label className="text-sm font-medium text-slate-700">
+              Filing Status
+            </Label>
+          </CardHeader>
+          <CardContent>
+            <Select value={filingStatus} onValueChange={(value) => setFilingStatus(value as keyof typeof FEDERAL_TAX_BRACKETS)}>
+              <SelectTrigger className="text-lg font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(FILING_STATUSES).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
       </div>

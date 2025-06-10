@@ -9,6 +9,7 @@ import { RealEstateManager } from '@/components/RealEstateManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Calculator, PieChart, Home } from 'lucide-react';
+import { calculateTotalTax, getEffectiveTaxRate } from '@/utils/taxCalculator';
 
 export interface IncomeSource {
   id: string;
@@ -73,7 +74,7 @@ const Index = () => {
       amount: 120000,
       frequency: 'annually',
       growthRate: 3,
-      taxRate: 22
+      taxRate: getEffectiveTaxRate(120000, 'salary')
     }
   ]);
 
@@ -118,19 +119,19 @@ const Index = () => {
       let grossIncome = 0;
       let taxes = 0;
 
-      // Calculate regular income and taxes
+      // Calculate regular income and taxes using new tax system
       incomes.forEach(income => {
         const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
         const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
         grossIncome += adjustedAmount;
-        taxes += adjustedAmount * (income.taxRate / 100);
+        taxes += calculateTotalTax(adjustedAmount, income.type);
       });
 
       // Add equity payouts for this year
       const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
       yearlyEquityPayouts.forEach(payout => {
         grossIncome += payout.amount;
-        taxes += payout.amount * (payout.taxRate / 100);
+        taxes += calculateTotalTax(payout.amount, 'equity');
       });
 
       const netIncome = grossIncome - taxes;

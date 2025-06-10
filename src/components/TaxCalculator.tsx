@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { IncomeSource, WealthProjection } from '@/pages/Index';
-import { Calculator, TrendingDown } from 'lucide-react';
+import { Calculator, TrendingDown, Info } from 'lucide-react';
+import { calculateTotalTax, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 
 interface TaxCalculatorProps {
   incomes: IncomeSource[];
@@ -30,14 +31,14 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
       const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      const taxAmount = adjustedAmount * (income.taxRate / 100);
+      const taxAmount = calculateTotalTax(adjustedAmount, income.type);
       
       if (!taxBreakdown[income.type]) {
         taxBreakdown[income.type] = { amount: 0, percentage: 0 };
       }
       
       taxBreakdown[income.type].amount += taxAmount;
-      taxBreakdown[income.type].percentage = income.taxRate;
+      taxBreakdown[income.type].percentage = adjustedAmount > 0 ? (taxAmount / adjustedAmount) * 100 : 0;
     });
     
     return taxBreakdown;
@@ -70,11 +71,26 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     return colors[type] || 'bg-gray-500';
   };
 
+  const getTaxExplanation = (type: string) => {
+    const explanations: Record<string, string> = {
+      salary: 'Progressive federal tax brackets + ~5% average state tax',
+      freelance: 'Progressive federal tax + 14.13% self-employment tax + state tax',
+      investment: '15% long-term capital gains rate (for most earners)',
+      equity: 'Progressive tax brackets (treated as ordinary income)',
+      other: 'Progressive federal tax brackets + average state tax'
+    };
+    return explanations[type] || 'Standard progressive taxation';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Calculator className="text-red-600" />
         <h3 className="text-xl font-semibold text-slate-800">Tax Analysis</h3>
+        <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
+          <Info className="w-4 h-4" />
+          Based on 2024 tax brackets & rates
+        </div>
       </div>
 
       {/* Tax Summary Cards */}
@@ -91,7 +107,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
               {formatCurrency(totalCurrentTax)}
             </div>
             <p className="text-xs text-red-600 mt-1">
-              Current year estimate
+              Auto-calculated current year
             </p>
           </CardContent>
         </Card>
@@ -144,15 +160,35 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{formatCurrency(tax.amount)}</div>
-                  <div className="text-sm text-slate-500">{formatPercentage(tax.percentage)} rate</div>
+                  <div className="text-sm text-slate-500">{formatPercentage(tax.percentage)} effective rate</div>
                 </div>
               </div>
+              <p className="text-xs text-slate-600 ml-6">{getTaxExplanation(type)}</p>
               <Progress 
                 value={(tax.amount / totalCurrentTax) * 100} 
                 className="h-2"
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* 2024 Tax Brackets Reference */}
+      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-lg">2024 Federal Tax Brackets (Single Filer)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {FEDERAL_TAX_BRACKETS.map((bracket, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
+                <span className="text-sm">
+                  {formatCurrency(bracket.min)} - {bracket.max === Infinity ? '∞' : formatCurrency(bracket.max)}
+                </span>
+                <span className="font-semibold text-slate-800">{bracket.rate}%</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -167,7 +203,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
             <div>
               <h4 className="font-medium">Maximize Retirement Contributions</h4>
               <p className="text-sm text-slate-600">
-                Consider increasing 401(k) and IRA contributions to reduce taxable income
+                401(k) limit: $23,000, IRA limit: $7,000 (2024) - reduces taxable income
               </p>
             </div>
           </div>
@@ -185,16 +221,16 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
             <div>
               <h4 className="font-medium">Health Savings Account (HSA)</h4>
               <p className="text-sm text-slate-600">
-                Triple tax advantage: deductible contributions, tax-free growth, tax-free withdrawals
+                2024 limit: $4,150 individual, $8,300 family - triple tax advantage
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="w-2 h-2 rounded-full bg-orange-500 mt-2" />
             <div>
-              <h4 className="font-medium">Equity Compensation Planning</h4>
+              <h4 className="font-medium">Timing Equity Compensation</h4>
               <p className="text-sm text-slate-600">
-                Time stock option exercises and RSU vesting to optimize tax brackets
+                Consider spreading large equity payouts across tax years to avoid higher brackets
               </p>
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IncomeSource } from '@/pages/Index';
-import { Plus, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Info } from 'lucide-react';
+import { getEffectiveTaxRate } from '@/utils/taxCalculator';
 
 interface IncomeManagerProps {
   incomes: IncomeSource[];
@@ -19,11 +21,14 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     amount: 0,
     frequency: 'annually',
     growthRate: 3,
-    taxRate: 22
+    taxRate: 0 // Will be calculated automatically
   });
 
   const addIncome = () => {
     if (newIncome.name && newIncome.amount) {
+      const annualAmount = newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount;
+      const calculatedTaxRate = getEffectiveTaxRate(annualAmount, newIncome.type || 'salary');
+      
       const income: IncomeSource = {
         id: Date.now().toString(),
         name: newIncome.name,
@@ -31,7 +36,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
         amount: newIncome.amount,
         frequency: newIncome.frequency || 'annually',
         growthRate: newIncome.growthRate || 3,
-        taxRate: newIncome.taxRate || 22
+        taxRate: calculatedTaxRate
       };
       setIncomes([...incomes, income]);
       setNewIncome({
@@ -40,15 +45,24 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
         amount: 0,
         frequency: 'annually',
         growthRate: 3,
-        taxRate: 22
+        taxRate: 0
       });
     }
   };
 
   const updateIncome = (id: string, updates: Partial<IncomeSource>) => {
-    setIncomes(incomes.map(income => 
-      income.id === id ? { ...income, ...updates } : income
-    ));
+    setIncomes(incomes.map(income => {
+      if (income.id === id) {
+        const updatedIncome = { ...income, ...updates };
+        // Recalculate tax rate if amount or type changes
+        if (updates.amount !== undefined || updates.type !== undefined || updates.frequency !== undefined) {
+          const annualAmount = updatedIncome.frequency === 'monthly' ? updatedIncome.amount * 12 : updatedIncome.amount;
+          updatedIncome.taxRate = getEffectiveTaxRate(annualAmount, updatedIncome.type);
+        }
+        return updatedIncome;
+      }
+      return income;
+    }));
   };
 
   const removeIncome = (id: string) => {
@@ -64,15 +78,15 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     }).format(amount);
   };
 
-  const getTaxRateByType = (type: string): number => {
-    const defaultRates: Record<string, number> = {
-      salary: 22,
-      freelance: 25,
-      investment: 15,
-      equity: 20,
-      other: 22
+  const getIncomeTypeDescription = (type: string): string => {
+    const descriptions: Record<string, string> = {
+      salary: 'Progressive federal + state income tax',
+      freelance: 'Progressive tax + 14.13% self-employment tax',
+      investment: '15% capital gains + state tax',
+      equity: 'Progressive tax (treated as ordinary income)',
+      other: 'Progressive federal + state income tax'
     };
-    return defaultRates[type] || 22;
+    return descriptions[type] || 'Standard progressive taxation';
   };
 
   return (
@@ -80,6 +94,10 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
       <div className="flex items-center gap-3 mb-6">
         <DollarSign className="text-green-600" />
         <h3 className="text-xl font-semibold text-slate-800">Income Sources</h3>
+        <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
+          <Info className="w-4 h-4" />
+          Taxes calculated automatically based on 2024 rates
+        </div>
       </div>
 
       {/* Add New Income Form */}
@@ -103,10 +121,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
               <Label htmlFor="income-type">Type</Label>
               <Select
                 value={newIncome.type}
-                onValueChange={(value: any) => {
-                  const taxRate = getTaxRateByType(value);
-                  setNewIncome({ ...newIncome, type: value, taxRate });
-                }}
+                onValueChange={(value: any) => setNewIncome({ ...newIncome, type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -119,6 +134,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                {getIncomeTypeDescription(newIncome.type || 'salary')}
+              </p>
             </div>
 
             <div>
@@ -161,15 +179,17 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
             </div>
 
             <div>
-              <Label htmlFor="income-tax">Tax Rate (%)</Label>
-              <Input
-                id="income-tax"
-                type="number"
-                step="0.1"
-                value={newIncome.taxRate}
-                onChange={(e) => setNewIncome({ ...newIncome, taxRate: Number(e.target.value) })}
-                placeholder="22"
-              />
+              <Label>Estimated Tax Rate</Label>
+              <div className="p-2 bg-slate-100 rounded text-sm font-medium">
+                {newIncome.amount && newIncome.type ? 
+                  `${getEffectiveTaxRate(
+                    newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount,
+                    newIncome.type
+                  ).toFixed(1)}%` : 
+                  '0.0%'
+                }
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
             </div>
           </div>
 
@@ -211,6 +231,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {getIncomeTypeDescription(income.type)}
+                  </p>
                 </div>
 
                 <div>
@@ -257,12 +280,10 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Label>Tax Rate (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={income.taxRate}
-                      onChange={(e) => updateIncome(income.id, { taxRate: Number(e.target.value) })}
-                    />
+                    <div className="p-2 bg-slate-100 rounded text-sm font-medium">
+                      {income.taxRate.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
                   </div>
                   <Button
                     variant="destructive"

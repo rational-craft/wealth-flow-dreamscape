@@ -6,11 +6,19 @@ import { ForecastChart } from '@/components/ForecastChart';
 import { TaxCalculator } from '@/components/TaxCalculator';
 import { EquityManager } from '@/components/EquityManager';
 import { RealEstateManager } from '@/components/RealEstateManager';
+import { ScenarioManager } from '@/components/ScenarioManager';
+import { ScenarioComparison } from '@/components/ScenarioComparison';
+import { MonteCarloSimulation } from '@/components/MonteCarloSimulation';
+import { DebtManager } from '@/components/DebtManager';
+import { GoalManager } from '@/components/GoalManager';
+import { RetirementSettings } from '@/components/RetirementSettings';
+import { ExportButtons } from '@/components/ExportButtons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Calculator, PieChart, Home } from 'lucide-react';
+import { TrendingUp, DollarSign, Calculator, PieChart, Home, Target, CreditCard, BarChart3, Settings, FileSpreadsheet } from 'lucide-react';
 import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 import { DataTable } from '@/components/DataTable';
+import { scenarioService } from '@/services/ScenarioService';
 
 export interface IncomeSource {
   id: string;
@@ -62,7 +70,7 @@ export interface WealthProjection {
   cumulativeWealth: number;
   taxes: number;
   realEstateValue: number;
-  realEstateEquity: number;
+  realEateEquity: number;
   loanBalance: number;
 }
 
@@ -113,6 +121,10 @@ const Index = () => {
   const [projectionYears, setProjectionYears] = useState(10);
   const [state, setState] = useState<keyof typeof STATE_TAX_RATES>('California');
   const [filingStatus, setFilingStatus] = useState<keyof typeof FEDERAL_TAX_BRACKETS>('single');
+  const [currentScenarioId, setCurrentScenarioId] = useState('base');
+  const [retirementAge, setRetirementAge] = useState(65);
+  const [withdrawalRate, setWithdrawalRate] = useState(4);
+  const [enableRetirementMode, setEnableRetirementMode] = useState(false);
 
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
@@ -121,21 +133,27 @@ const Index = () => {
     for (let year = 1; year <= projectionYears; year++) {
       let grossIncome = 0;
       let taxes = 0;
+      
+      // Check if we're in retirement mode
+      const currentAge = 30 + year; // Assuming starting age of 30
+      const isRetired = enableRetirementMode && currentAge >= retirementAge;
 
-      // Calculate regular income and taxes using new tax system
-      incomes.forEach(income => {
-        const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-        const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-        grossIncome += adjustedAmount;
-        taxes += calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
-      });
+      if (!isRetired) {
+        // Calculate regular income and taxes using new tax system
+        incomes.forEach(income => {
+          const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+          const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+          grossIncome += adjustedAmount;
+          taxes += calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
+        });
 
-      // Add equity payouts for this year
-      const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
-      yearlyEquityPayouts.forEach(payout => {
-        grossIncome += payout.amount;
-        taxes += calculateTotalTax(payout.amount, 'equity', state, filingStatus);
-      });
+        // Add equity payouts for this year
+        const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
+        yearlyEquityPayouts.forEach(payout => {
+          grossIncome += payout.amount;
+          taxes += calculateTotalTax(payout.amount, 'equity', state, filingStatus);
+        });
+      }
 
       const netIncome = grossIncome - taxes;
 
@@ -183,7 +201,13 @@ const Index = () => {
 
       totalExpenses += realEstateExpenses;
 
-      const savings = netIncome - totalExpenses;
+      let savings = netIncome - totalExpenses;
+      
+      // Handle retirement withdrawals
+      if (isRetired && enableRetirementMode) {
+        savings = -((cumulativeWealth + realEstateEquity) * (withdrawalRate / 100));
+      }
+
       cumulativeWealth = (cumulativeWealth * (1 + investmentReturn / 100)) + savings + realEstateEquity;
 
       projections.push({
@@ -205,6 +229,31 @@ const Index = () => {
 
   const projections = calculateProjections();
 
+  // Calculate current financial metrics for goals
+  const currentNetWorth = projections[0]?.cumulativeWealth || initialWealth;
+  const currentSavingsRate = projections[0] ? (projections[0].savings / projections[0].grossIncome) * 100 : 0;
+  const totalDebt = 0; // You can calculate this from your debt data
+
+  const handleScenarioChange = (scenarioId: string) => {
+    setCurrentScenarioId(scenarioId);
+    scenarioService.setCurrentScenario(scenarioId);
+    // You would load the scenario data here
+  };
+
+  const getProjectionsForScenario = (scenarioId: string) => {
+    // This would return projections for a specific scenario
+    return projections; // Simplified for now
+  };
+
+  const exportData = {
+    incomes,
+    expenses,
+    equityPayouts,
+    properties,
+    projections,
+    scenarioName: scenarioService.getCurrentScenario().name
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto p-6">
@@ -217,6 +266,12 @@ const Index = () => {
             Plan your financial future with comprehensive income, expense, tax, and real estate modeling
           </p>
         </div>
+
+        <ScenarioManager
+          currentScenarioId={currentScenarioId}
+          onScenarioChange={handleScenarioChange}
+          onScenarioUpdate={() => {}}
+        />
 
         <div className="mb-6">
           <WealthDashboard 
@@ -238,8 +293,19 @@ const Index = () => {
           />
         </div>
 
+        <div className="mb-6">
+          <RetirementSettings
+            retirementAge={retirementAge}
+            setRetirementAge={setRetirementAge}
+            withdrawalRate={withdrawalRate}
+            setWithdrawalRate={setWithdrawalRate}
+            enableRetirementMode={enableRetirementMode}
+            setEnableRetirementMode={setEnableRetirementMode}
+          />
+        </div>
+
         <Tabs defaultValue="income" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white shadow-sm">
+          <TabsList className="grid w-full grid-cols-10 bg-white shadow-sm">
             <TabsTrigger value="income" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Income
@@ -256,6 +322,14 @@ const Index = () => {
               <Home className="w-4 h-4" />
               Real Estate
             </TabsTrigger>
+            <TabsTrigger value="debt" className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4" />
+              Debt
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Goals
+            </TabsTrigger>
             <TabsTrigger value="taxes" className="flex items-center gap-2">
               <Calculator className="w-4 h-4" />
               Taxes
@@ -264,8 +338,12 @@ const Index = () => {
               <TrendingUp className="w-4 h-4" />
               Forecast
             </TabsTrigger>
+            <TabsTrigger value="scenarios" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Scenarios
+            </TabsTrigger>
             <TabsTrigger value="data" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
+              <FileSpreadsheet className="w-4 h-4" />
               Data
             </TabsTrigger>
           </TabsList>
@@ -294,6 +372,22 @@ const Index = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="debt" className="space-y-6">
+            <Card className="p-6">
+              <DebtManager />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="goals" className="space-y-6">
+            <Card className="p-6">
+              <GoalManager 
+                netWorth={currentNetWorth}
+                savingsRate={currentSavingsRate}
+                totalDebt={totalDebt}
+              />
+            </Card>
+          </TabsContent>
+
           <TabsContent value="taxes" className="space-y-6">
             <Card className="p-6">
               <TaxCalculator incomes={incomes} projections={projections} />
@@ -301,21 +395,47 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="forecast" className="space-y-6">
+            <div className="space-y-6">
+              <Card className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Wealth Forecast</h2>
+                  <ExportButtons data={exportData} elementId="forecast-chart" />
+                </div>
+                <div id="forecast-chart">
+                  <ForecastChart projections={projections} />
+                </div>
+              </Card>
+              <Card className="p-6">
+                <MonteCarloSimulation />
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="scenarios" className="space-y-6">
             <Card className="p-6">
-              <ForecastChart projections={projections} />
+              <ScenarioComparison 
+                scenarios={scenarioService.getAllScenarios()}
+                getProjectionsForScenario={getProjectionsForScenario}
+              />
             </Card>
           </TabsContent>
 
           <TabsContent value="data" className="space-y-6">
             <Card className="p-6">
-              <DataTable 
-                incomes={incomes}
-                expenses={expenses}
-                equityPayouts={equityPayouts}
-                properties={properties}
-                projections={projections}
-                projectionYears={projectionYears}
-              />
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Data Export</h2>
+                <ExportButtons data={exportData} elementId="data-table" />
+              </div>
+              <div id="data-table">
+                <DataTable 
+                  incomes={incomes}
+                  expenses={expenses}
+                  equityPayouts={equityPayouts}
+                  properties={properties}
+                  projections={projections}
+                  projectionYears={projectionYears}
+                />
+              </div>
             </Card>
           </TabsContent>
         </Tabs>

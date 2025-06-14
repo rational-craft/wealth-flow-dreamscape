@@ -12,6 +12,14 @@ interface RealEstateManagerProps {
   setProperties: (properties: RealEstateProperty[]) => void;
 }
 
+const DOWN_PAYMENT_SOURCES = [
+  "Savings",
+  "Gift",
+  "Sale of Home",
+  "Retirement Account",
+  "Other"
+];
+
 export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties, setProperties }) => {
   const [newProperty, setNewProperty] = useState<Partial<RealEstateProperty>>({
     name: '',
@@ -23,7 +31,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
     purchaseYear: 1,
     appreciationRate: 3,
     maintenanceRate: 1,
-    propertyTaxRate: 1.2
+    propertyTaxRate: 1.2,
+    downPaymentSource: 'Savings' // default
   });
 
   const addProperty = () => {
@@ -39,7 +48,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
         purchaseYear: newProperty.purchaseYear,
         appreciationRate: newProperty.appreciationRate || 3,
         maintenanceRate: newProperty.maintenanceRate || 1,
-        propertyTaxRate: newProperty.propertyTaxRate || 1.2
+        propertyTaxRate: newProperty.propertyTaxRate || 1.2,
+        downPaymentSource: newProperty.downPaymentSource || 'Savings'
       };
       setProperties([...properties, property]);
       setNewProperty({
@@ -52,7 +62,8 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
         purchaseYear: 1,
         appreciationRate: 3,
         maintenanceRate: 1,
-        propertyTaxRate: 1.2
+        propertyTaxRate: 1.2,
+        downPaymentSource: 'Savings'
       });
     }
   };
@@ -204,6 +215,25 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                 placeholder="1.2"
               />
             </div>
+
+            <div>
+              <Label htmlFor="down-payment-source">Down Payment Source</Label>
+              <select
+                id="down-payment-source"
+                className="w-full border border-gray-300 rounded px-3 py-2 bg-white"
+                value={newProperty.downPaymentSource}
+                onChange={(e) =>
+                  setNewProperty({
+                    ...newProperty,
+                    downPaymentSource: e.target.value,
+                  })
+                }
+              >
+                {DOWN_PAYMENT_SOURCES.map((src) => (
+                  <option key={src} value={src}>{src}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <Button onClick={addProperty} className="w-full bg-blue-600 hover:bg-blue-700">
@@ -230,6 +260,7 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                   <TableHead>Interest Rate</TableHead>
                   <TableHead>Purchase Year</TableHead>
                   <TableHead>Appreciation Rate</TableHead>
+                  <TableHead>Down Payment Source</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -239,7 +270,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                     <TableCell>
                       <Input
                         value={property.name}
-                        onChange={(e) => updateProperty(property.id, { name: e.target.value })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { name: e.target.value })
+                        }
                         className="min-w-[150px]"
                       />
                     </TableCell>
@@ -247,7 +280,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                       <Input
                         type="number"
                         value={property.purchasePrice}
-                        onChange={(e) => updateProperty(property.id, { purchasePrice: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { purchasePrice: Number(e.target.value) })
+                        }
                         className="min-w-[120px]"
                       />
                     </TableCell>
@@ -255,7 +290,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                       <Input
                         type="number"
                         value={property.downPayment}
-                        onChange={(e) => updateProperty(property.id, { downPayment: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { downPayment: Number(e.target.value) })
+                        }
                         className="min-w-[120px]"
                       />
                     </TableCell>
@@ -263,7 +300,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                       <Input
                         type="number"
                         value={property.loanAmount}
-                        onChange={(e) => updateProperty(property.id, { loanAmount: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { loanAmount: Number(e.target.value) })
+                        }
                         className="min-w-[120px]"
                       />
                     </TableCell>
@@ -272,7 +311,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                         type="number"
                         step="0.1"
                         value={property.interestRate}
-                        onChange={(e) => updateProperty(property.id, { interestRate: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { interestRate: Number(e.target.value) })
+                        }
                         className="min-w-[80px]"
                       />
                     </TableCell>
@@ -282,7 +323,9 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                         min="1"
                         max="50"
                         value={property.purchaseYear}
-                        onChange={(e) => updateProperty(property.id, { purchaseYear: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { purchaseYear: Number(e.target.value) })
+                        }
                         className="min-w-[80px]"
                       />
                     </TableCell>
@@ -291,9 +334,24 @@ export const RealEstateManager: React.FC<RealEstateManagerProps> = ({ properties
                         type="number"
                         step="0.1"
                         value={property.appreciationRate}
-                        onChange={(e) => updateProperty(property.id, { appreciationRate: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updateProperty(property.id, { appreciationRate: Number(e.target.value) })
+                        }
                         className="min-w-[80px]"
                       />
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-white"
+                        value={property.downPaymentSource || "Savings"}
+                        onChange={(e) =>
+                          updateProperty(property.id, { downPaymentSource: e.target.value })
+                        }
+                      >
+                        {DOWN_PAYMENT_SOURCES.map((src) => (
+                          <option key={src} value={src}>{src}</option>
+                        ))}
+                      </select>
                     </TableCell>
                     <TableCell>
                       <Button

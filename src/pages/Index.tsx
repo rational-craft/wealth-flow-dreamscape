@@ -65,6 +65,7 @@ export interface RealEstateProperty {
   appreciationRate: number;
   maintenanceRate: number;
   propertyTaxRate: number;
+  downPaymentSource?: string; // <-- Added
 }
 
 export interface WealthProjection {

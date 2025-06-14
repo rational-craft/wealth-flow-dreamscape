@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,29 +9,41 @@ import { IncomeSource as BaseIncomeSource } from '@/pages/Index';
 import { Plus, Trash2, DollarSign, Info } from 'lucide-react';
 import { getEffectiveTaxRate } from '@/utils/taxCalculator';
 
-// Extend type with additional RSU vesting support
-type IncomeSource = BaseIncomeSource & {
-  type: BaseIncomeSource['type'] | 'rsu_vested';
-  parentGrantId?: string;
-  vestingYear?: number;
+// Explicitly define the additional RSU_VESTED type
+type RsuVestedIncomeSource = {
+  id: string;
+  name: string;
+  type: 'rsu_vested';
+  amount: number;
+  frequency: 'annually';
+  growthRate: number;
+  taxRate: number;
+  vestingYear: number;
+  parentGrantId: string;
 };
 
-// Helper to filter salary incomes
-function getSalaryIncomes(incomes: IncomeSource[]): IncomeSource[] {
-  return incomes.filter((i) => i.type === 'salary');
+// All possible sources in this module (RSU_vested is local only)
+type AppIncomeSource = BaseIncomeSource | RsuVestedIncomeSource;
+
+// Helper to filter salary incomes (ignore rsu_vested)
+function getSalaryIncomes(incomes: AppIncomeSource[]): BaseIncomeSource[] {
+  return incomes.filter(
+    (i): i is BaseIncomeSource =>
+      i.type === 'salary'
+  );
 }
 
 interface IncomeManagerProps {
-  incomes: IncomeSource[];
-  setIncomes: (incomes: IncomeSource[]) => void;
+  incomes: AppIncomeSource[];
+  setIncomes: (incomes: AppIncomeSource[]) => void;
 }
 
 // Helper to generate RSU vesting incomes (auto, not in main form)
-function generateRSUVestings(grant: IncomeSource): IncomeSource[] {
+function generateRSUVestings(grant: BaseIncomeSource): RsuVestedIncomeSource[] {
   if (grant.type !== 'rsu' || !grant.vestingLength || !grant.vestingStartYear) return [];
   const perYear = Math.round(grant.amount / grant.vestingLength);
   return Array.from({ length: grant.vestingLength }, (_, i) => ({
-    id: `${grant.id}-vested-${i+1}`,
+    id: `${grant.id}-vested-${i + 1}`,
     name: `${grant.name} (Vested Year ${grant.vestingStartYear + i})`,
     type: 'rsu_vested',
     amount: perYear,
@@ -39,11 +52,12 @@ function generateRSUVestings(grant: IncomeSource): IncomeSource[] {
     taxRate: 0,
     vestingYear: grant.vestingStartYear + i,
     parentGrantId: grant.id,
-  } as IncomeSource));
+  }));
 }
 
 export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncomes }) => {
-  const [newIncome, setNewIncome] = useState<Partial<IncomeSource>>({
+  // When adding new incomes, use BaseIncomeSource shape (never rsu_vested directly)
+  const [newIncome, setNewIncome] = useState<Partial<BaseIncomeSource>>({
     name: '',
     type: 'salary',
     amount: 0,
@@ -58,26 +72,26 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     vestingStartYear: undefined,
   });
 
-  // Helper to reset newIncome state for all types
-  const resetNewIncome = () => setNewIncome({
-    name: '',
-    type: 'salary',
-    amount: 0,
-    frequency: 'annually',
-    growthRate: 3,
-    taxRate: 0,
-    bonusYear: undefined,
-    linkedSalaryId: undefined,
-    vestingLength: 4,
-    vestingStartYear: undefined,
-  });
+  const resetNewIncome = () =>
+    setNewIncome({
+      name: '',
+      type: 'salary',
+      amount: 0,
+      frequency: 'annually',
+      growthRate: 3,
+      taxRate: 0,
+      bonusYear: undefined,
+      linkedSalaryId: undefined,
+      vestingLength: 4,
+      vestingStartYear: undefined,
+    });
 
   const addIncome = () => {
     if (newIncome.name && newIncome.amount) {
-      // [Change] RSU logic: add grant, then auto-generate per-year vestings; all others remain unchanged
+      // [Change] RSU logic: add grant, then auto-generate per-year vestings
       if (newIncome.type === 'rsu' && newIncome.vestingLength && newIncome.vestingStartYear) {
         const grantId = Date.now().toString();
-        const grant: IncomeSource = {
+        const grant: BaseIncomeSource = {
           id: grantId,
           name: newIncome.name,
           type: 'rsu',
@@ -88,7 +102,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
           vestingLength: newIncome.vestingLength,
           vestingStartYear: newIncome.vestingStartYear,
         };
-        const vestings = generateRSUVestings(grant);
+        const vestings = generateRSUVestings(grant); // array of RsuVestedIncomeSource
         setIncomes([...incomes, grant, ...vestings]);
         resetNewIncome();
         return;
@@ -97,7 +111,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
       const annualAmount = newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount;
       const calculatedTaxRate = getEffectiveTaxRate(annualAmount, newIncome.type || 'salary');
 
-      const income: IncomeSource = {
+      const income: BaseIncomeSource = {
         id: Date.now().toString(),
         name: newIncome.name,
         type: newIncome.type as any,
@@ -105,12 +119,10 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
         frequency: newIncome.frequency || 'annually',
         growthRate: newIncome.growthRate || 3,
         taxRate: calculatedTaxRate,
-        // Bonus specific fields
         ...(newIncome.type === 'bonus' && {
           bonusYear: newIncome.bonusYear,
           linkedSalaryId: newIncome.linkedSalaryId,
         }),
-        // RSU specific fields
         ...(newIncome.type === 'rsu' && {
           vestingLength: newIncome.vestingLength,
           vestingStartYear: newIncome.vestingStartYear,
@@ -121,29 +133,43 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     }
   };
 
-  const updateIncome = (id: string, updates: Partial<IncomeSource>) => {
-    setIncomes(incomes.map(income => {
-      if (income.id === id) {
-        const updatedIncome = { ...income, ...updates };
-        // Recalculate tax rate if amount or type changes
-        if (updates.amount !== undefined || updates.type !== undefined || updates.frequency !== undefined) {
-          const annualAmount = updatedIncome.frequency === 'monthly' ? updatedIncome.amount * 12 : updatedIncome.amount;
-          updatedIncome.taxRate = getEffectiveTaxRate(annualAmount, updatedIncome.type);
+  const updateIncome = (id: string, updates: Partial<BaseIncomeSource>) => {
+    setIncomes(
+      incomes.map((income) => {
+        if (income.id === id && income.type !== 'rsu_vested') {
+          const updatedIncome = { ...income, ...updates } as BaseIncomeSource;
+          // Recalculate tax rate if amount or type changes
+          if (
+            updates.amount !== undefined ||
+            updates.type !== undefined ||
+            updates.frequency !== undefined
+          ) {
+            const annualAmount =
+              updatedIncome.frequency === 'monthly'
+                ? updatedIncome.amount * 12
+                : updatedIncome.amount;
+            updatedIncome.taxRate = getEffectiveTaxRate(annualAmount, updatedIncome.type as BaseIncomeSource['type']);
+          }
+          return updatedIncome;
         }
-        return updatedIncome;
-      }
-      return income;
-    }));
+        return income;
+      })
+    );
   };
 
-  // [NEW] When removing an RSU grant, remove its auto-vested children too
+  // Remove RSU vesting children if grant is deleted
   const removeIncome = (id: string) => {
-    const income = incomes.find(i => i.id === id);
+    const income = incomes.find((i) => i.id === id);
     if (income && income.type === 'rsu') {
-      // remove grant and all associated vested incomes
-      setIncomes(incomes.filter(i => i.id !== id && i.parentGrantId !== id));
+      setIncomes(
+        incomes.filter(
+          (i) =>
+            i.id !== id &&
+            !(i.type === 'rsu_vested' && 'parentGrantId' in i && i.parentGrantId === id)
+        )
+      );
     } else {
-      setIncomes(incomes.filter(i => i.id !== id));
+      setIncomes(incomes.filter((i) => i.id !== id));
     }
   };
 
@@ -164,16 +190,16 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
       equity: 'Progressive tax (treated as ordinary income)',
       rsu: 'RSU vesting - progressive tax, set vesting schedule below',
       bonus: 'One-off bonus, assign salary to link for taxes',
-      other: 'Progressive federal + state income tax'
+      other: 'Progressive federal + state income tax',
     };
     return descriptions[type] || 'Standard progressive taxation';
   };
 
   // Only show main incomes, not the auto-generated vestings
-  const displayIncomes = incomes.filter((i: IncomeSource) => i.type !== 'rsu_vested');
+  const displayIncomes = incomes.filter((i): i is BaseIncomeSource => i.type !== 'rsu_vested');
 
   // Insert vestings below each RSU grant in the display list
-  const renderRows = (income: IncomeSource) => {
+  const renderRows = (income: BaseIncomeSource) => {
     const rows = [
       <Card key={income.id} className="border-slate-200">
         <CardContent className="p-6">
@@ -216,10 +242,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                 onChange={(e) => updateIncome(income.id, { amount: Number(e.target.value) })}
               />
               <div className="text-xs text-slate-500 mt-1">
-                {income.frequency === 'monthly' 
+                {income.frequency === 'monthly'
                   ? `${formatCurrency(income.amount * 12)}/year`
-                  : `${formatCurrency(income.amount / 12)}/month`
-                }
+                  : `${formatCurrency(income.amount / 12)}/month`}
               </div>
             </div>
             {/* For bonus: pick salary & year */}
@@ -236,7 +261,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     </SelectTrigger>
                     <SelectContent>
                       {getSalaryIncomes(incomes).map((salary) => (
-                        <SelectItem value={salary.id} key={salary.id}>{salary.name}</SelectItem>
+                        <SelectItem value={salary.id} key={salary.id}>
+                          {salary.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -247,7 +274,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     type="number"
                     min={1}
                     value={income.bonusYear ?? ''}
-                    onChange={(e) => updateIncome(income.id, { bonusYear: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateIncome(income.id, { bonusYear: Number(e.target.value) })
+                    }
                   />
                 </div>
               </>
@@ -259,7 +288,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                   <Label>Vesting Length (years)</Label>
                   <Select
                     value={String(income.vestingLength ?? 4)}
-                    onValueChange={(value: string) => updateIncome(income.id, { vestingLength: Number(value) })}
+                    onValueChange={(value: string) =>
+                      updateIncome(income.id, { vestingLength: Number(value) })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Vesting" />
@@ -276,7 +307,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     type="number"
                     min={1}
                     value={income.vestingStartYear ?? ''}
-                    onChange={(e) => updateIncome(income.id, { vestingStartYear: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateIncome(income.id, { vestingStartYear: Number(e.target.value) })
+                    }
                   />
                 </div>
               </>
@@ -305,7 +338,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     type="number"
                     step="0.1"
                     value={income.growthRate}
-                    onChange={(e) => updateIncome(income.id, { growthRate: Number(e.target.value) })}
+                    onChange={(e) =>
+                      updateIncome(income.id, { growthRate: Number(e.target.value) })
+                    }
                   />
                 </div>
               </>
@@ -330,20 +365,26 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>,
     ];
     // If RSU, list auto-generated vestings underneath
     if (income.type === 'rsu') {
       const vestings = incomes.filter(
-        (i: IncomeSource) => i.parentGrantId === income.id && i.type === 'rsu_vested'
+        (i): i is RsuVestedIncomeSource =>
+          i.type === 'rsu_vested' && 'parentGrantId' in i && i.parentGrantId === income.id
       );
-      vestings.forEach(v => {
+      vestings.forEach((v) => {
         rows.push(
-          <Card key={v.id} className="ml-4 border-l-4 border-dashed border-green-300 bg-green-50 opacity-90">
+          <Card
+            key={v.id}
+            className="ml-4 border-l-4 border-dashed border-green-300 bg-green-50 opacity-90"
+          >
             <CardContent className="py-3 px-6 flex flex-row items-center gap-4">
               <div className="flex-1 text-sm text-green-800">
                 <span className="font-medium">{v.name}</span>
-                <span className="ml-2">— {formatCurrency(v.amount)} vested in {v.vestingYear}</span>
+                <span className="ml-2">
+                  — {formatCurrency(v.amount)} vested in {v.vestingYear}
+                </span>
               </div>
               {/* Vesting rows are readonly: no edit/delete */}
             </CardContent>
@@ -438,17 +479,19 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
             {/* Growth rate - not for bonus */}
             {newIncome.type !== 'bonus' && (
-            <div>
-              <Label htmlFor="income-growth">Growth Rate (%)</Label>
-              <Input
-                id="income-growth"
-                type="number"
-                step="0.1"
-                value={newIncome.growthRate}
-                onChange={(e) => setNewIncome({ ...newIncome, growthRate: Number(e.target.value) })}
-                placeholder="3"
-              />
-            </div>
+              <div>
+                <Label htmlFor="income-growth">Growth Rate (%)</Label>
+                <Input
+                  id="income-growth"
+                  type="number"
+                  step="0.1"
+                  value={newIncome.growthRate}
+                  onChange={(e) =>
+                    setNewIncome({ ...newIncome, growthRate: Number(e.target.value) })
+                  }
+                  placeholder="3"
+                />
+              </div>
             )}
 
             {/* For bonus pick associated salary and year */}
@@ -465,13 +508,13 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     </SelectTrigger>
                     <SelectContent>
                       {getSalaryIncomes(incomes).map((salary) => (
-                        <SelectItem value={salary.id} key={salary.id}>{salary.name}</SelectItem>
+                        <SelectItem value={salary.id} key={salary.id}>
+                          {salary.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Tie bonus to a salary for modeling
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Tie bonus to a salary for modeling</p>
                 </div>
                 <div>
                   <Label htmlFor="bonus-year">Bonus Year</Label>
@@ -480,12 +523,12 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     type="number"
                     min={1}
                     value={newIncome.bonusYear ?? ''}
-                    onChange={(e) => setNewIncome({ ...newIncome, bonusYear: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setNewIncome({ ...newIncome, bonusYear: Number(e.target.value) })
+                    }
                     placeholder="e.g. 2025"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Year the bonus is paid
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Year the bonus is paid</p>
                 </div>
               </>
             )}
@@ -497,7 +540,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                   <Label htmlFor="rsu-vesting-length">Vesting Length (years)</Label>
                   <Select
                     value={String(newIncome.vestingLength ?? 4)}
-                    onValueChange={(value: string) => setNewIncome({ ...newIncome, vestingLength: Number(value) })}
+                    onValueChange={(value: string) =>
+                      setNewIncome({ ...newIncome, vestingLength: Number(value) })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Vesting" />
@@ -515,12 +560,12 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                     type="number"
                     min={1}
                     value={newIncome.vestingStartYear ?? ''}
-                    onChange={(e) => setNewIncome({ ...newIncome, vestingStartYear: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setNewIncome({ ...newIncome, vestingStartYear: Number(e.target.value) })
+                    }
                     placeholder="e.g. 2025"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Vesting schedule starts in this year
-                  </p>
+                  <p className="text-xs text-slate-500 mt-1">Vesting schedule starts in this year</p>
                 </div>
               </>
             )}
@@ -529,13 +574,14 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
             <div>
               <Label>Estimated Tax Rate</Label>
               <div className="p-2 bg-slate-100 rounded text-sm font-medium">
-                {newIncome.amount && newIncome.type ? 
-                  `${getEffectiveTaxRate(
-                    newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount,
-                    newIncome.type
-                  ).toFixed(1)}%` : 
-                  '0.0%'
-                }
+                {newIncome.amount && newIncome.type
+                  ? `${getEffectiveTaxRate(
+                      newIncome.frequency === 'monthly'
+                        ? newIncome.amount * 12
+                        : newIncome.amount,
+                      newIncome.type
+                    ).toFixed(1)}%`
+                  : '0.0%'}
               </div>
               <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
             </div>
@@ -550,9 +596,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
       {/* Existing Income Sources */}
       <div className="space-y-4">
-        {displayIncomes.map((income) =>
-          renderRows(income)
-        )}
+        {displayIncomes.map((income) => renderRows(income))}
       </div>
     </div>
   );

@@ -26,20 +26,27 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
   const getTaxByIncomeType = (year: number) => {
     const taxBreakdown: Record<string, { amount: number; percentage: number }> = {};
-    
+
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
       const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      const taxAmount = calculateTotalTax(adjustedAmount, income.type);
-      
+      const taxVal = calculateTotalTax(adjustedAmount, income.type);
+
+      let taxAmount = 0;
+      if (typeof taxVal === "number") {
+        taxAmount = taxVal;
+      } else if (taxVal && typeof taxVal === "object" && "federal" in taxVal && "state" in taxVal) {
+        taxAmount = taxVal.federal + taxVal.state;
+      }
+
       if (!taxBreakdown[income.type]) {
         taxBreakdown[income.type] = { amount: 0, percentage: 0 };
       }
-      
+
       taxBreakdown[income.type].amount += taxAmount;
       taxBreakdown[income.type].percentage = adjustedAmount > 0 ? (taxAmount / adjustedAmount) * 100 : 0;
     });
-    
+
     return taxBreakdown;
   };
 
@@ -48,9 +55,15 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
       const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      const split = calculateTotalTax(adjustedAmount, income.type, undefined, undefined, { split: true }) as {federal:number, state:number};
-      fed += split.federal;
-      state += split.state;
+      const split = calculateTotalTax(adjustedAmount, income.type, undefined, undefined, { split: true });
+
+      if (typeof split === "number") {
+        fed += split;
+        // state stays 0
+      } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
+        fed += split.federal;
+        state += split.state;
+      }
     });
     return { fed, state };
   };

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { WealthDashboard } from '@/components/WealthDashboard';
-// Removed: import { IncomeManager } ...
-// Removed: import { ExpenseManager } ...
+import { IncomeManager } from '@/components/IncomeManager';
+import { ExpenseManager } from '@/components/ExpenseManager';
 import { ForecastChart } from '@/components/ForecastChart';
 import { TaxCalculator } from '@/components/TaxCalculator';
 import { EquityManager } from '@/components/EquityManager';
@@ -263,7 +262,12 @@ const Index = () => {
 
   const projections = calculateProjections();
 
-  // ... (current financial metrics for goals) ...
+  // Add fallback values so goal manager always renders (actual computation can be improved later)
+  const currentNetWorth = projections[0]?.cumulativeWealth || 0;
+  const currentSavingsRate = projections[0]
+    ? (projections[0].savings / projections[0].grossIncome) * 100
+    : 0;
+  const totalDebt = projections[0]?.loanBalance || 0;
 
   const handleScenarioChange = (scenarioId: string) => {
     setCurrentScenarioId(scenarioId);

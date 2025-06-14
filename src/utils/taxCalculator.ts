@@ -191,14 +191,26 @@ export const calculateTotalTax = (
 ): number | { federal: number; state: number } => {
   const federal = calculateFederalTax(income, incomeType, filingStatus || 'single');
   const stateTax = calculateStateTax(income, incomeType, state || 'California');
+
   if (options && options.split) {
     return { federal, state: stateTax };
   }
   return federal + stateTax;
 };
 
-export const getEffectiveTaxRate = (income: number, incomeType: string, state?: keyof typeof STATE_TAX_RATES, filingStatus?: keyof typeof FEDERAL_TAX_BRACKETS): number => {
+export const getEffectiveTaxRate = (
+  income: number,
+  incomeType: string,
+  state?: keyof typeof STATE_TAX_RATES,
+  filingStatus?: keyof typeof FEDERAL_TAX_BRACKETS
+): number => {
   if (income === 0) return 0;
   const totalTax = calculateTotalTax(income, incomeType, state, filingStatus);
-  return (totalTax / income) * 100;
+  let totalTaxNumber = 0;
+  if (typeof totalTax === "number") {
+    totalTaxNumber = totalTax;
+  } else if (totalTax && typeof totalTax === "object" && "federal" in totalTax && "state" in totalTax) {
+    totalTaxNumber = totalTax.federal + totalTax.state;
+  }
+  return (totalTaxNumber / income) * 100;
 };

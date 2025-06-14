@@ -219,7 +219,7 @@ const Index = () => {
         cumulativeWealth,
         taxes,
         realEstateValue,
-        realEstateEquity,
+        realEateEquity: realEstateEquity,
         loanBalance: totalLoanBalance
       });
     }

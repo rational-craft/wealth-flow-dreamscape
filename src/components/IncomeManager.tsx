@@ -18,6 +18,23 @@ interface IncomeManagerProps {
   setIncomes: (incomes: IncomeSource[]) => void;
 }
 
+// Helper to generate RSU vesting incomes (auto, not in main form)
+function generateRSUVestings(grant: IncomeSource) {
+  if (grant.type !== 'rsu' || !grant.vestingLength || !grant.vestingStartYear) return [];
+  const perYear = Math.round(grant.amount / grant.vestingLength);
+  return Array.from({ length: grant.vestingLength }, (_, i) => ({
+    id: `${grant.id}-vested-${i+1}`,
+    name: `${grant.name} (Vested Year ${grant.vestingStartYear + i})`,
+    type: 'rsu_vested',
+    amount: perYear,
+    frequency: 'annually',
+    growthRate: 0,
+    taxRate: 0,
+    vestingYear: grant.vestingStartYear + i,
+    parentGrantId: grant.id,
+  }));
+}
+
 export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncomes }) => {
   const [newIncome, setNewIncome] = useState<Partial<IncomeSource>>({
     name: '',
@@ -50,6 +67,26 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
   const addIncome = () => {
     if (newIncome.name && newIncome.amount) {
+      // [Change] RSU logic: add grant, then auto-generate per-year vestings; all others remain unchanged
+      if (newIncome.type === 'rsu' && newIncome.vestingLength && newIncome.vestingStartYear) {
+        const grantId = Date.now().toString();
+        const grant: IncomeSource = {
+          id: grantId,
+          name: newIncome.name,
+          type: 'rsu',
+          amount: newIncome.amount,
+          frequency: 'annually',
+          growthRate: 0, // RSU grants don't grow each year
+          taxRate: 0, // Calculated in analysis
+          vestingLength: newIncome.vestingLength,
+          vestingStartYear: newIncome.vestingStartYear,
+        };
+        const vestings = generateRSUVestings(grant);
+        setIncomes([...incomes, grant, ...vestings]);
+        resetNewIncome();
+        return;
+      }
+
       const annualAmount = newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount;
       const calculatedTaxRate = getEffectiveTaxRate(annualAmount, newIncome.type || 'salary');
 
@@ -92,8 +129,15 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     }));
   };
 
+  // [NEW] When removing an RSU grant, remove its auto-vested children too
   const removeIncome = (id: string) => {
-    setIncomes(incomes.filter(income => income.id !== id));
+    const income = incomes.find(i => i.id === id);
+    if (income && income.type === 'rsu') {
+      // remove grant and all associated vested incomes
+      setIncomes(incomes.filter(i => i.id !== id && i.parentGrantId !== id));
+    } else {
+      setIncomes(incomes.filter(i => i.id !== id));
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -116,6 +160,189 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
       other: 'Progressive federal + state income tax'
     };
     return descriptions[type] || 'Standard progressive taxation';
+  };
+
+  // Only show main incomes, not the auto-generated vestings
+  const displayIncomes = incomes.filter(i => i.type !== 'rsu_vested');
+
+  // Insert vestings below each RSU grant in the display list
+  const renderRows = (income: IncomeSource) => {
+    const rows = [
+      <Card key={income.id} className="border-slate-200">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+            <div>
+              <Label>Name</Label>
+              <Input
+                value={income.name}
+                onChange={(e) => updateIncome(income.id, { name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Type</Label>
+              <Select
+                value={income.type}
+                onValueChange={(value: any) => updateIncome(income.id, { type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="salary">Salary</SelectItem>
+                  <SelectItem value="freelance">Freelance</SelectItem>
+                  <SelectItem value="investment">Investment</SelectItem>
+                  <SelectItem value="equity">Equity Compensation</SelectItem>
+                  <SelectItem value="bonus">Bonus</SelectItem>
+                  <SelectItem value="rsu">RSU</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                {getIncomeTypeDescription(income.type)}
+              </p>
+            </div>
+            <div>
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                value={income.amount}
+                onChange={(e) => updateIncome(income.id, { amount: Number(e.target.value) })}
+              />
+              <div className="text-xs text-slate-500 mt-1">
+                {income.frequency === 'monthly' 
+                  ? `${formatCurrency(income.amount * 12)}/year`
+                  : `${formatCurrency(income.amount / 12)}/month`
+                }
+              </div>
+            </div>
+            {/* For bonus: pick salary & year */}
+            {income.type === 'bonus' && (
+              <>
+                <div>
+                  <Label>Linked Salary</Label>
+                  <Select
+                    value={income.linkedSalaryId ?? ''}
+                    onValueChange={(val) => updateIncome(income.id, { linkedSalaryId: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select salary" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSalaryIncomes(incomes).map((salary) => (
+                        <SelectItem value={salary.id} key={salary.id}>{salary.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Bonus Year</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={income.bonusYear ?? ''}
+                    onChange={(e) => updateIncome(income.id, { bonusYear: Number(e.target.value) })}
+                  />
+                </div>
+              </>
+            )}
+            {/* RSU fields: vesting length & start year */}
+            {income.type === 'rsu' && (
+              <>
+                <div>
+                  <Label>Vesting Length (years)</Label>
+                  <Select
+                    value={String(income.vestingLength ?? 4)}
+                    onValueChange={(value: string) => updateIncome(income.id, { vestingLength: Number(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vesting" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Year</SelectItem>
+                      <SelectItem value="4">4 Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Vesting Start Year</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={income.vestingStartYear ?? ''}
+                    onChange={(e) => updateIncome(income.id, { vestingStartYear: Number(e.target.value) })}
+                  />
+                </div>
+              </>
+            )}
+            {/* Normal frequency and growth rate fields for non-bonus/investment */}
+            {income.type !== 'bonus' && income.type !== 'rsu' && (
+              <>
+                <div>
+                  <Label>Frequency</Label>
+                  <Select
+                    value={income.frequency}
+                    onValueChange={(value: any) => updateIncome(income.id, { frequency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="annually">Annually</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Growth Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={income.growthRate}
+                    onChange={(e) => updateIncome(income.id, { growthRate: Number(e.target.value) })}
+                  />
+                </div>
+              </>
+            )}
+            {/* Tax Rate & Delete */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label>Tax Rate (%)</Label>
+                <div className="p-2 bg-slate-100 rounded text-sm font-medium">
+                  {income.taxRate.toFixed(1)}%
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => removeIncome(income.id)}
+                className="mt-6"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ];
+    // If RSU, list auto-generated vestings underneath
+    if (income.type === 'rsu') {
+      const vestings = incomes.filter(i => i.parentGrantId === income.id && i.type === 'rsu_vested');
+      vestings.forEach(v => {
+        rows.push(
+          <Card key={v.id} className="ml-4 border-l-4 border-dashed border-green-300 bg-green-50 opacity-90">
+            <CardContent className="py-3 px-6 flex flex-row items-center gap-4">
+              <div className="flex-1 text-sm text-green-800">
+                <span className="font-medium">{v.name}</span>
+                <span className="ml-2">— {formatCurrency(v.amount)} vested in {v.vestingYear}</span>
+              </div>
+              {/* Vesting rows are readonly: no edit/delete */}
+            </CardContent>
+          </Card>
+        );
+      });
+    }
+    return rows;
   };
 
   return (
@@ -314,164 +541,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
       {/* Existing Income Sources */}
       <div className="space-y-4">
-        {incomes.map((income) => (
-          <Card key={income.id} className="border-slate-200">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-                <div>
-                  <Label>Name</Label>
-                  <Input
-                    value={income.name}
-                    onChange={(e) => updateIncome(income.id, { name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Type</Label>
-                  <Select
-                    value={income.type}
-                    onValueChange={(value: any) => updateIncome(income.id, { type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="salary">Salary</SelectItem>
-                      <SelectItem value="freelance">Freelance</SelectItem>
-                      <SelectItem value="investment">Investment</SelectItem>
-                      <SelectItem value="equity">Equity Compensation</SelectItem>
-                      <SelectItem value="bonus">Bonus</SelectItem>
-                      <SelectItem value="rsu">RSU</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {getIncomeTypeDescription(income.type)}
-                  </p>
-                </div>
-                <div>
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    value={income.amount}
-                    onChange={(e) => updateIncome(income.id, { amount: Number(e.target.value) })}
-                  />
-                  <div className="text-xs text-slate-500 mt-1">
-                    {income.frequency === 'monthly' 
-                      ? `${formatCurrency(income.amount * 12)}/year`
-                      : `${formatCurrency(income.amount / 12)}/month`
-                    }
-                  </div>
-                </div>
-                {/* For bonus: pick salary & year */}
-                {income.type === 'bonus' && (
-                  <>
-                    <div>
-                      <Label>Linked Salary</Label>
-                      <Select
-                        value={income.linkedSalaryId ?? ''}
-                        onValueChange={(val) => updateIncome(income.id, { linkedSalaryId: val })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select salary" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSalaryIncomes(incomes).map((salary) => (
-                            <SelectItem value={salary.id} key={salary.id}>{salary.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Bonus Year</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={income.bonusYear ?? ''}
-                        onChange={(e) => updateIncome(income.id, { bonusYear: Number(e.target.value) })}
-                      />
-                    </div>
-                  </>
-                )}
-                {/* RSU fields: vesting length & start year */}
-                {income.type === 'rsu' && (
-                  <>
-                    <div>
-                      <Label>Vesting Length (years)</Label>
-                      <Select
-                        value={String(income.vestingLength ?? 4)}
-                        onValueChange={(value: string) => updateIncome(income.id, { vestingLength: Number(value) })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vesting" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 Year</SelectItem>
-                          <SelectItem value="4">4 Years</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Vesting Start Year</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={income.vestingStartYear ?? ''}
-                        onChange={(e) => updateIncome(income.id, { vestingStartYear: Number(e.target.value) })}
-                      />
-                    </div>
-                  </>
-                )}
-                {/* Normal frequency and growth rate fields for non-bonus/investment */}
-                {income.type !== 'bonus' && income.type !== 'rsu' && (
-                  <>
-                    <div>
-                      <Label>Frequency</Label>
-                      <Select
-                        value={income.frequency}
-                        onValueChange={(value: any) => updateIncome(income.id, { frequency: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="annually">Annually</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Growth Rate (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={income.growthRate}
-                        onChange={(e) => updateIncome(income.id, { growthRate: Number(e.target.value) })}
-                      />
-                    </div>
-                  </>
-                )}
-                {/* Tax Rate & Delete */}
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Label>Tax Rate (%)</Label>
-                    <div className="p-2 bg-slate-100 rounded text-sm font-medium">
-                      {income.taxRate.toFixed(1)}%
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeIncome(income.id)}
-                    className="mt-6"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {displayIncomes.map((income) =>
+          renderRows(income)
+        )}
       </div>
     </div>
   );

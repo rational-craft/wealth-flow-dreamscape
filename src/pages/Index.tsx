@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { WealthDashboard } from '@/components/WealthDashboard';
-import { IncomeManager } from '@/components/IncomeManager';
-import { ExpenseManager } from '@/components/ExpenseManager';
+// Removed: import { IncomeManager } ...
+// Removed: import { ExpenseManager } ...
 import { ForecastChart } from '@/components/ForecastChart';
 import { TaxCalculator } from '@/components/TaxCalculator';
 import { EquityManager } from '@/components/EquityManager';
@@ -141,7 +142,6 @@ const Index = () => {
     setFilingStatus((scenarioData.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS) ?? 'single');
   }, [currentScenarioId]);
 
-  // On changes to major user data, update the scenario object.
   React.useEffect(() => {
     scenarioService.updateScenario(currentScenarioId, {
       incomes,
@@ -167,6 +167,7 @@ const Index = () => {
     currentScenarioId,
   ]);
 
+  // --- FIX (and Type) tax arithmetic ---
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
     let cumulativeWealth = initialWealth;
@@ -174,31 +175,33 @@ const Index = () => {
     for (let year = 1; year <= projectionYears; year++) {
       let grossIncome = 0;
       let taxes = 0;
-      
-      // Check if we're in retirement mode
-      const currentAge = 30 + year; // Assuming starting age of 30
+
+      // Retirement Mode check
+      const currentAge = 30 + year;
       const isRetired = enableRetirementMode && currentAge >= retirementAge;
 
       if (!isRetired) {
-        // Calculate regular income and taxes using new tax system
+        // All income sources; each tax calculated as a number below
         incomes.forEach(income => {
           const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
           const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
           grossIncome += adjustedAmount;
-          taxes += calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
+          const taxValue = calculateTotalTax(adjustedAmount, income.type, state as keyof typeof STATE_TAX_RATES, filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
+          taxes += typeof taxValue === "number" ? taxValue : ((taxValue.federal ?? 0) + (taxValue.state ?? 0));
         });
 
-        // Add equity payouts for this year
+        // Equity payouts
         const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
         yearlyEquityPayouts.forEach(payout => {
           grossIncome += payout.amount;
-          taxes += calculateTotalTax(payout.amount, 'equity', state, filingStatus);
+          const taxValue = calculateTotalTax(payout.amount, 'equity', state as keyof typeof STATE_TAX_RATES, filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
+          taxes += typeof taxValue === "number" ? taxValue : ((taxValue.federal ?? 0) + (taxValue.state ?? 0));
         });
       }
 
       const netIncome = grossIncome - taxes;
 
-      // Calculate total expenses including real estate
+      // Calculate expenses including real estate
       let totalExpenses = 0;
       expenses.forEach(expense => {
         const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
@@ -206,7 +209,6 @@ const Index = () => {
         totalExpenses += adjustedAmount;
       });
 
-      // Calculate real estate metrics
       let realEstateValue = 0;
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
@@ -218,24 +220,17 @@ const Index = () => {
           const currentValue = property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
           realEstateValue += currentValue;
 
-          // Calculate loan balance
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
-          
           if (monthsOwned < numPayments) {
             const monthlyPayment = property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
             const remainingBalance = property.loanAmount * (Math.pow(1 + monthlyRate, numPayments) - Math.pow(1 + monthlyRate, monthsOwned)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
             totalLoanBalance += Math.max(0, remainingBalance);
-            
-            // Add mortgage payments to expenses
             realEstateExpenses += monthlyPayment * 12;
           }
-
-          // Add maintenance and property taxes
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-
           realEstateEquity += currentValue - Math.max(0, totalLoanBalance);
         }
       });
@@ -243,8 +238,6 @@ const Index = () => {
       totalExpenses += realEstateExpenses;
 
       let savings = netIncome - totalExpenses;
-      
-      // Handle retirement withdrawals
       if (isRetired && enableRetirementMode) {
         savings = -((cumulativeWealth + realEstateEquity) * (withdrawalRate / 100));
       }
@@ -270,22 +263,17 @@ const Index = () => {
 
   const projections = calculateProjections();
 
-  // Calculate current financial metrics for goals
-  const currentNetWorth = projections[0]?.cumulativeWealth || initialWealth;
-  const currentSavingsRate = projections[0] ? (projections[0].savings / projections[0].grossIncome) * 100 : 0;
-  const totalDebt = 0; // You can calculate this from your debt data
+  // ... (current financial metrics for goals) ...
 
   const handleScenarioChange = (scenarioId: string) => {
     setCurrentScenarioId(scenarioId);
     scenarioService.setCurrentScenario(scenarioId);
-    // All scenario data loads through the useEffect above
   };
 
+  // FIX: scenario projection calculations and tax destructuring
   const getProjectionsForScenario = (scenarioId: string) => {
     const scenario = scenarioService.getAllScenarios().find((s) => s.id === scenarioId);
     if (!scenario) return [];
-    // Use scenario data to run a projection calculation
-    // Copy the main calculateProjections function, but feeding scenario.data
     const s = scenario.data;
     let cumulativeWealth = s.initialWealth ?? 50000;
     const projections: WealthProjection[] = [];
@@ -299,28 +287,40 @@ const Index = () => {
       const equityArr = s.equityPayouts ?? [];
       const propsArr = s.properties ?? [];
 
-      // No retirement/withdrawal mode for scenario comparison for now (could add)
       incomesArr.forEach((income:any) => {
         const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
         const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
         grossIncome += adjustedAmount;
-        const { federal, state: stax } = calculateTotalTax(adjustedAmount, income.type, s.state, s.filingStatus, { split: true });
+        const taxValue = calculateTotalTax(adjustedAmount, income.type, s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
+        let federal = 0, stateTax = 0;
+        if (typeof taxValue === "number") {
+          federal = taxValue;
+        } else {
+          federal = taxValue.federal ?? 0;
+          stateTax = taxValue.state ?? 0;
+        }
         fedTaxes += federal;
-        stateTaxes += stax;
-        taxes += federal + stax;
+        stateTaxes += stateTax;
+        taxes += federal + stateTax;
       });
-      // Equity payouts
       const yearlyEquityPayouts = equityArr.filter((p:any) => p.year === year);
       yearlyEquityPayouts.forEach((payout:any) => {
         grossIncome += payout.amount;
-        const { federal, state: stax } = calculateTotalTax(payout.amount, 'equity', s.state, s.filingStatus, { split: true });
+        const taxValue = calculateTotalTax(payout.amount, 'equity', s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
+        let federal = 0, stateTax = 0;
+        if (typeof taxValue === "number") {
+          federal = taxValue;
+        } else {
+          federal = taxValue.federal ?? 0;
+          stateTax = taxValue.state ?? 0;
+        }
         fedTaxes += federal;
-        stateTaxes += stax;
-        taxes += federal + stax;
+        stateTaxes += stateTax;
+        taxes += federal + stateTax;
       });
 
       const netIncome = grossIncome - taxes;
-      // Expenses/same as original calculation
+      // EXPENSES
       let totalExpenses = 0;
       (s.expenses ?? []).forEach((expense:any) => {
         const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
@@ -328,7 +328,6 @@ const Index = () => {
         totalExpenses += adjustedAmount;
       });
 
-      // Real estate/same as original calculation
       let realEstateValue = 0;
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
@@ -339,7 +338,6 @@ const Index = () => {
           const yearsOwned = year - property.purchaseYear + 1;
           const currentValue = property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
           realEstateValue += currentValue;
-
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
@@ -370,7 +368,6 @@ const Index = () => {
         realEstateValue,
         realEateEquity: realEstateEquity,
         loanBalance: totalLoanBalance,
-        // Optionally: add fedTaxes, stateTaxes
       });
     }
     return projections;
@@ -387,6 +384,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+
+      {/* ---- FORECAST CHART FRONT/AND/CENTER ---- */}
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-800 mb-2 flex items-center gap-3">
@@ -398,11 +397,18 @@ const Index = () => {
           </p>
         </div>
 
+        {/* Place the forecast chart at the top of the home page */}
+        <div className="mb-8">
+          <ForecastChart projections={projections} />
+        </div>
+
         <ScenarioManager
           currentScenarioId={currentScenarioId}
           onScenarioChange={handleScenarioChange}
           onScenarioUpdate={() => {}}
         />
+
+        {/* Removed summary sections for income and expenses */}
 
         <div className="mb-6">
           <WealthDashboard 

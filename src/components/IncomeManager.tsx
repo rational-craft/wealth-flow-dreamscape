@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,54 +8,24 @@ import { IncomeSource as BaseIncomeSource } from '@/pages/Index';
 import { Plus, Trash2, DollarSign, Info } from 'lucide-react';
 import { getEffectiveTaxRate } from '@/utils/taxCalculator';
 
-// Explicitly define the additional RSU_VESTED type
-type RsuVestedIncomeSource = {
-  id: string;
-  name: string;
-  type: 'rsu_vested';
-  amount: number;
-  frequency: 'annually';
-  growthRate: number;
-  taxRate: number;
-  vestingYear: number;
-  parentGrantId: string;
-};
-
-// All possible sources in this module (RSU_vested is local only)
-type AppIncomeSource = BaseIncomeSource | RsuVestedIncomeSource;
-
-// Helper to filter salary incomes (ignore rsu_vested)
-function getSalaryIncomes(incomes: AppIncomeSource[]): BaseIncomeSource[] {
-  return incomes.filter(
-    (i): i is BaseIncomeSource =>
-      i.type === 'salary'
-  );
-}
-
 interface IncomeManagerProps {
-  incomes: AppIncomeSource[];
-  setIncomes: (incomes: AppIncomeSource[]) => void;
+  incomes: BaseIncomeSource[];
+  setIncomes: (incomes: BaseIncomeSource[]) => void;
 }
 
-// Helper to generate RSU vesting incomes (auto, not in main form)
-function generateRSUVestings(grant: BaseIncomeSource): RsuVestedIncomeSource[] {
+// Helper to generate vesting rows for display only; does not modify incomes state
+function getRSUVestings(grant: BaseIncomeSource) {
   if (grant.type !== 'rsu' || !grant.vestingLength || !grant.vestingStartYear) return [];
   const perYear = Math.round(grant.amount / grant.vestingLength);
   return Array.from({ length: grant.vestingLength }, (_, i) => ({
     id: `${grant.id}-vested-${i + 1}`,
     name: `${grant.name} (Vested Year ${grant.vestingStartYear + i})`,
-    type: 'rsu_vested',
     amount: perYear,
-    frequency: 'annually',
-    growthRate: 0,
-    taxRate: 0,
-    vestingYear: grant.vestingStartYear + i,
-    parentGrantId: grant.id,
+    vestingYear: grant.vestingStartYear + i
   }));
 }
 
 export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncomes }) => {
-  // When adding new incomes, use BaseIncomeSource shape (never rsu_vested directly)
   const [newIncome, setNewIncome] = useState<Partial<BaseIncomeSource>>({
     name: '',
     type: 'salary',
@@ -88,7 +57,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
   const addIncome = () => {
     if (newIncome.name && newIncome.amount) {
-      // [Change] RSU logic: add grant, then auto-generate per-year vestings
+      // [Update] RSU logic: only add grant, do NOT add vestings to incomes.
       if (newIncome.type === 'rsu' && newIncome.vestingLength && newIncome.vestingStartYear) {
         const grantId = Date.now().toString();
         const grant: BaseIncomeSource = {
@@ -102,8 +71,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
           vestingLength: newIncome.vestingLength,
           vestingStartYear: newIncome.vestingStartYear,
         };
-        const vestings = generateRSUVestings(grant); // array of RsuVestedIncomeSource
-        setIncomes([...incomes, grant, ...vestings]);
+        setIncomes([...incomes, grant]);
         resetNewIncome();
         return;
       }
@@ -136,7 +104,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
   const updateIncome = (id: string, updates: Partial<BaseIncomeSource>) => {
     setIncomes(
       incomes.map((income) => {
-        if (income.id === id && income.type !== 'rsu_vested') {
+        if (income.id === id) {
           const updatedIncome = { ...income, ...updates } as BaseIncomeSource;
           // Recalculate tax rate if amount or type changes
           if (
@@ -157,20 +125,8 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     );
   };
 
-  // Remove RSU vesting children if grant is deleted
   const removeIncome = (id: string) => {
-    const income = incomes.find((i) => i.id === id);
-    if (income && income.type === 'rsu') {
-      setIncomes(
-        incomes.filter(
-          (i) =>
-            i.id !== id &&
-            !(i.type === 'rsu_vested' && 'parentGrantId' in i && i.parentGrantId === id)
-        )
-      );
-    } else {
-      setIncomes(incomes.filter((i) => i.id !== id));
-    }
+    setIncomes(incomes.filter((i) => i.id !== id));
   };
 
   const formatCurrency = (amount: number) => {
@@ -195,10 +151,15 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     return descriptions[type] || 'Standard progressive taxation';
   };
 
-  // Only show main incomes, not the auto-generated vestings
-  const displayIncomes = incomes.filter((i): i is BaseIncomeSource => i.type !== 'rsu_vested');
+  const getSalaryIncomes = (incomes: BaseIncomeSource[]): BaseIncomeSource[] => {
+    return incomes.filter(
+      (i): i is BaseIncomeSource =>
+        i.type === 'salary'
+    );
+  }
 
-  // Insert vestings below each RSU grant in the display list
+  const displayIncomes = incomes.filter((i) => i.type !== 'rsu_vested'); // but rsu_vested can't be there, so this is harmless
+
   const renderRows = (income: BaseIncomeSource) => {
     const rows = [
       <Card key={income.id} className="border-slate-200">
@@ -367,12 +328,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
         </CardContent>
       </Card>,
     ];
-    // If RSU, list auto-generated vestings underneath
+    // If RSU, only display vestings (for UI); they are virtual, not in state.
     if (income.type === 'rsu') {
-      const vestings = incomes.filter(
-        (i): i is RsuVestedIncomeSource =>
-          i.type === 'rsu_vested' && 'parentGrantId' in i && i.parentGrantId === income.id
-      );
+      const vestings = getRSUVestings(income);
       vestings.forEach((v) => {
         rows.push(
           <Card
@@ -386,7 +344,6 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
                   — {formatCurrency(v.amount)} vested in {v.vestingYear}
                 </span>
               </div>
-              {/* Vesting rows are readonly: no edit/delete */}
             </CardContent>
           </Card>
         );

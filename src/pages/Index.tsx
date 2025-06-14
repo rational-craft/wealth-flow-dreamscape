@@ -23,11 +23,17 @@ import { scenarioService } from '@/services/ScenarioService';
 export interface IncomeSource {
   id: string;
   name: string;
-  type: 'salary' | 'freelance' | 'investment' | 'equity' | 'other';
+  type: 'salary' | 'freelance' | 'investment' | 'equity' | 'other' | 'bonus' | 'rsu';
   amount: number;
   frequency: 'monthly' | 'annually';
   growthRate: number;
   taxRate: number;
+  // For bonus:
+  bonusYear?: number;
+  linkedSalaryId?: string;
+  // For RSU:
+  vestingLength?: number; // in years, eg 4, 1
+  vestingStartYear?: number;
 }
 
 export interface ExpenseCategory {

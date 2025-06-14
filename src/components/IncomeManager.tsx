@@ -4,9 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IncomeSource } from '@/pages/Index';
+import { IncomeSource as BaseIncomeSource } from '@/pages/Index';
 import { Plus, Trash2, DollarSign, Info } from 'lucide-react';
 import { getEffectiveTaxRate } from '@/utils/taxCalculator';
+
+// Extend type with additional RSU vesting support
+type IncomeSource = BaseIncomeSource & {
+  type: BaseIncomeSource['type'] | 'rsu_vested';
+  parentGrantId?: string;
+  vestingYear?: number;
+};
 
 // Helper to filter salary incomes
 function getSalaryIncomes(incomes: IncomeSource[]): IncomeSource[] {
@@ -19,7 +26,7 @@ interface IncomeManagerProps {
 }
 
 // Helper to generate RSU vesting incomes (auto, not in main form)
-function generateRSUVestings(grant: IncomeSource) {
+function generateRSUVestings(grant: IncomeSource): IncomeSource[] {
   if (grant.type !== 'rsu' || !grant.vestingLength || !grant.vestingStartYear) return [];
   const perYear = Math.round(grant.amount / grant.vestingLength);
   return Array.from({ length: grant.vestingLength }, (_, i) => ({
@@ -32,7 +39,7 @@ function generateRSUVestings(grant: IncomeSource) {
     taxRate: 0,
     vestingYear: grant.vestingStartYear + i,
     parentGrantId: grant.id,
-  }));
+  } as IncomeSource));
 }
 
 export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncomes }) => {
@@ -76,8 +83,8 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
           type: 'rsu',
           amount: newIncome.amount,
           frequency: 'annually',
-          growthRate: 0, // RSU grants don't grow each year
-          taxRate: 0, // Calculated in analysis
+          growthRate: 0,
+          taxRate: 0,
           vestingLength: newIncome.vestingLength,
           vestingStartYear: newIncome.vestingStartYear,
         };
@@ -163,7 +170,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
   };
 
   // Only show main incomes, not the auto-generated vestings
-  const displayIncomes = incomes.filter(i => i.type !== 'rsu_vested');
+  const displayIncomes = incomes.filter((i: IncomeSource) => i.type !== 'rsu_vested');
 
   // Insert vestings below each RSU grant in the display list
   const renderRows = (income: IncomeSource) => {
@@ -327,7 +334,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     ];
     // If RSU, list auto-generated vestings underneath
     if (income.type === 'rsu') {
-      const vestings = incomes.filter(i => i.parentGrantId === income.id && i.type === 'rsu_vested');
+      const vestings = incomes.filter(
+        (i: IncomeSource) => i.parentGrantId === income.id && i.type === 'rsu_vested'
+      );
       vestings.forEach(v => {
         rows.push(
           <Card key={v.id} className="ml-4 border-l-4 border-dashed border-green-300 bg-green-50 opacity-90">

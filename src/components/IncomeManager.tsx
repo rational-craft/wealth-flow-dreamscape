@@ -158,7 +158,9 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
     );
   }
 
-  const displayIncomes = incomes.filter((i) => i.type !== 'rsu_vested'); // but rsu_vested can't be there, so this is harmless
+  // This filtered list previously checked for "rsu_vested" for exclusion.
+  // Remove the unnecessary filter since 'rsu_vested' can never be included in state.
+  const displayIncomes = incomes; // No filter needed, since all are correct type
 
   const renderRows = (income: BaseIncomeSource) => {
     const rows = [

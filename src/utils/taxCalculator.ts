@@ -1,4 +1,3 @@
-
 export interface TaxBracket {
   min: number;
   max: number;
@@ -99,6 +98,33 @@ export const STATE_TAX_RATES = {
   'Wyoming': 0.0
 };
 
+// Example progressive state brackets for select states
+export const STATE_PROGRESSIVE_BRACKETS: Record<string, TaxBracket[]> = {
+  California: [
+    { min: 0, max: 10412, rate: 1 },
+    { min: 10412, max: 24684, rate: 2 },
+    { min: 24684, max: 38959, rate: 4 },
+    { min: 38959, max: 54081, rate: 6 },
+    { min: 54081, max: 68350, rate: 8 },
+    { min: 68350, max: 349137, rate: 9.3 },
+    { min: 349137, max: 418961, rate: 10.3 },
+    { min: 418961, max: 698271, rate: 11.3 },
+    { min: 698271, max: Infinity, rate: 12.3 }
+  ],
+  NewYork: [
+    { min: 0, max: 8500, rate: 4 },
+    { min: 8500, max: 11700, rate: 4.5 },
+    { min: 11700, max: 13900, rate: 5.25 },
+    { min: 13900, max: 21400, rate: 5.9 },
+    { min: 21400, max: 80650, rate: 6.33 },
+    { min: 80650, max: 215400, rate: 6.85 },
+    { min: 215400, max: 1077550, rate: 9.65 },
+    { min: 1077550, max: 5000000, rate: 10.3 },
+    { min: 5000000, max: Infinity, rate: 10.9 },
+  ],
+  // add others as needed...
+};
+
 export const FILING_STATUSES = {
   single: 'Single',
   marriedFilingJointly: 'Married Filing Jointly',
@@ -133,15 +159,42 @@ export const calculateFederalTax = (income: number, incomeType: string, filingSt
   return tax;
 };
 
-export const calculateStateTax = (income: number, incomeType: string, state: keyof typeof STATE_TAX_RATES): number => {
-  const rate = STATE_TAX_RATES[state] || 0;
-  return income * (rate / 100);
+export const calculateStateTax = (
+  income: number,
+  incomeType: string,
+  state: keyof typeof STATE_TAX_RATES,
+): number => {
+  // Use progressive for supported states, flat otherwise.
+  if (STATE_PROGRESSIVE_BRACKETS[state]) {
+    let tax = 0;
+    let remaining = income;
+    for (const bracket of STATE_PROGRESSIVE_BRACKETS[state]) {
+      if (remaining <= 0) break;
+      const bracketSize = Math.min(remaining, bracket.max - bracket.min);
+      tax += bracketSize * (bracket.rate / 100);
+      remaining -= bracketSize;
+    }
+    return tax;
+  } else {
+    const rate = STATE_TAX_RATES[state] || 0;
+    return income * (rate / 100);
+  }
 };
 
-export const calculateTotalTax = (income: number, incomeType: string, state?: keyof typeof STATE_TAX_RATES, filingStatus?: keyof typeof FEDERAL_TAX_BRACKETS): number => {
-  const federalTax = calculateFederalTax(income, incomeType, filingStatus || 'single');
+// Allow get federal + state tax split
+export const calculateTotalTax = (
+  income: number,
+  incomeType: string,
+  state?: keyof typeof STATE_TAX_RATES,
+  filingStatus?: keyof typeof FEDERAL_TAX_BRACKETS,
+  options?: { split?: boolean }
+): number | { federal: number; state: number } => {
+  const federal = calculateFederalTax(income, incomeType, filingStatus || 'single');
   const stateTax = calculateStateTax(income, incomeType, state || 'California');
-  return federalTax + stateTax;
+  if (options && options.split) {
+    return { federal, state: stateTax };
+  }
+  return federal + stateTax;
 };
 
 export const getEffectiveTaxRate = (income: number, incomeType: string, state?: keyof typeof STATE_TAX_RATES, filingStatus?: keyof typeof FEDERAL_TAX_BRACKETS): number => {

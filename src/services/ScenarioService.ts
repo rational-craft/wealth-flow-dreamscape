@@ -1,4 +1,3 @@
-
 export interface Scenario {
   id: string;
   name: string;
@@ -106,7 +105,11 @@ export class ScenarioService {
   updateScenario(id: string, data: Partial<Scenario['data']>) {
     const scenario = this.scenarios.get(id);
     if (scenario) {
-      scenario.data = { ...scenario.data, ...data };
+      scenario.data = {
+        ...scenario.data,
+        ...data,
+      };
+      this.scenarios.set(id, scenario); // force update with new object reference
     }
   }
 

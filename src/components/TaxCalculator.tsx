@@ -43,6 +43,25 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     return taxBreakdown;
   };
 
+  const getFederalStateTax = (year: number) => {
+    let fed = 0, state = 0;
+    incomes.forEach(income => {
+      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+      const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      const split = calculateTotalTax(adjustedAmount, income.type, undefined, undefined, { split: true }) as {federal:number, state:number};
+      fed += split.federal;
+      state += split.state;
+    });
+    return { fed, state };
+  };
+
+  const year1TaxSplit = getFederalStateTax(1);
+
+  const sumFedState = Array.from({length: 10}, (_, i) => getFederalStateTax(i+1)).reduce(
+    (acc, val) => ({ fed: acc.fed + val.fed, state: acc.state + val.state }),
+    { fed: 0, state: 0 }
+  );
+
   const currentYearTaxes = getTaxByIncomeType(1);
   const totalCurrentTax = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.amount, 0);
   const totalCurrentIncome = projections[0]?.grossIncome || 0;
@@ -93,7 +112,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       </div>
 
       {/* Tax Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-red-700 flex items-center gap-2">
@@ -103,7 +122,11 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-800">
-              {formatCurrency(totalCurrentTax)}
+              {formatCurrency(year1TaxSplit.fed + year1TaxSplit.state)}
+            </div>
+            <div className="text-xs text-red-600 mt-1 flex flex-col gap-0.5">
+              <span>Federal: {formatCurrency(year1TaxSplit.fed)}</span>
+              <span>State: {formatCurrency(year1TaxSplit.state)}</span>
             </div>
             <p className="text-xs text-red-600 mt-1">
               Auto-calculated current year
@@ -130,15 +153,31 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-yellow-700">
-              10-Year Tax Total
+              10-Year Federal Tax
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-800">
-              {formatCurrency(projections.reduce((sum, p) => sum + p.taxes, 0))}
+              {formatCurrency(sumFedState.fed)}
             </div>
             <p className="text-xs text-yellow-600 mt-1">
-              Total projected taxes
+              Total projected federal taxes
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-blue-700">
+              10-Year State Tax
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-800">
+              {formatCurrency(sumFedState.state)}
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              Total projected state taxes
             </p>
           </CardContent>
         </Card>

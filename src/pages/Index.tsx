@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WealthDashboard } from '@/components/WealthDashboard';
 import { IncomeManager } from '@/components/IncomeManager';
 import { ExpenseManager } from '@/components/ExpenseManager';
@@ -126,6 +126,47 @@ const Index = () => {
   const [withdrawalRate, setWithdrawalRate] = useState(4);
   const [enableRetirementMode, setEnableRetirementMode] = useState(false);
 
+  // SCENARIO DATA LOADING/SAVING
+  React.useEffect(() => {
+    // On scenario change, load scenario data into the UI state.
+    const scenarioData = scenarioService.getCurrentScenario().data;
+    setIncomes(scenarioData.incomes ?? []);
+    setExpenses(scenarioData.expenses ?? []);
+    setEquityPayouts(scenarioData.equityPayouts ?? []);
+    setProperties(scenarioData.properties ?? []);
+    setInitialWealth(scenarioData.initialWealth ?? 50000);
+    setInvestmentReturn(scenarioData.investmentReturn ?? 7);
+    setProjectionYears(scenarioData.projectionYears ?? 10);
+    setState((scenarioData.state as keyof typeof STATE_TAX_RATES) ?? 'California');
+    setFilingStatus((scenarioData.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS) ?? 'single');
+  }, [currentScenarioId]);
+
+  // On changes to major user data, update the scenario object.
+  React.useEffect(() => {
+    scenarioService.updateScenario(currentScenarioId, {
+      incomes,
+      expenses,
+      equityPayouts,
+      properties,
+      initialWealth,
+      investmentReturn,
+      projectionYears,
+      state,
+      filingStatus,
+    });
+  }, [
+    incomes,
+    expenses,
+    equityPayouts,
+    properties,
+    initialWealth,
+    investmentReturn,
+    projectionYears,
+    state,
+    filingStatus,
+    currentScenarioId,
+  ]);
+
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
     let cumulativeWealth = initialWealth;
@@ -237,12 +278,102 @@ const Index = () => {
   const handleScenarioChange = (scenarioId: string) => {
     setCurrentScenarioId(scenarioId);
     scenarioService.setCurrentScenario(scenarioId);
-    // You would load the scenario data here
+    // All scenario data loads through the useEffect above
   };
 
   const getProjectionsForScenario = (scenarioId: string) => {
-    // This would return projections for a specific scenario
-    return projections; // Simplified for now
+    const scenario = scenarioService.getAllScenarios().find((s) => s.id === scenarioId);
+    if (!scenario) return [];
+    // Use scenario data to run a projection calculation
+    // Copy the main calculateProjections function, but feeding scenario.data
+    const s = scenario.data;
+    let cumulativeWealth = s.initialWealth ?? 50000;
+    const projections: WealthProjection[] = [];
+    for (let year = 1; year <= (s.projectionYears ?? 10); year++) {
+      let grossIncome = 0;
+      let taxes = 0;
+      let fedTaxes = 0;
+      let stateTaxes = 0;
+
+      const incomesArr = s.incomes ?? [];
+      const equityArr = s.equityPayouts ?? [];
+      const propsArr = s.properties ?? [];
+
+      // No retirement/withdrawal mode for scenario comparison for now (could add)
+      incomesArr.forEach((income:any) => {
+        const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+        const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+        grossIncome += adjustedAmount;
+        const { federal, state: stax } = calculateTotalTax(adjustedAmount, income.type, s.state, s.filingStatus, { split: true });
+        fedTaxes += federal;
+        stateTaxes += stax;
+        taxes += federal + stax;
+      });
+      // Equity payouts
+      const yearlyEquityPayouts = equityArr.filter((p:any) => p.year === year);
+      yearlyEquityPayouts.forEach((payout:any) => {
+        grossIncome += payout.amount;
+        const { federal, state: stax } = calculateTotalTax(payout.amount, 'equity', s.state, s.filingStatus, { split: true });
+        fedTaxes += federal;
+        stateTaxes += stax;
+        taxes += federal + stax;
+      });
+
+      const netIncome = grossIncome - taxes;
+      // Expenses/same as original calculation
+      let totalExpenses = 0;
+      (s.expenses ?? []).forEach((expense:any) => {
+        const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
+        const adjustedAmount = annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
+        totalExpenses += adjustedAmount;
+      });
+
+      // Real estate/same as original calculation
+      let realEstateValue = 0;
+      let realEstateEquity = 0;
+      let totalLoanBalance = 0;
+      let realEstateExpenses = 0;
+
+      propsArr.forEach((property:any) => {
+        if (year >= property.purchaseYear) {
+          const yearsOwned = year - property.purchaseYear + 1;
+          const currentValue = property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
+          realEstateValue += currentValue;
+
+          const monthlyRate = property.interestRate / 100 / 12;
+          const numPayments = property.loanTermYears * 12;
+          const monthsOwned = (yearsOwned - 1) * 12;
+          if (monthsOwned < numPayments) {
+            const monthlyPayment = property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+            const remainingBalance = property.loanAmount * (Math.pow(1 + monthlyRate, numPayments) - Math.pow(1 + monthlyRate, monthsOwned)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+            totalLoanBalance += Math.max(0, remainingBalance);
+            realEstateExpenses += monthlyPayment * 12;
+          }
+          realEstateExpenses += currentValue * (property.maintenanceRate / 100);
+          realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
+          realEstateEquity += currentValue - Math.max(0, totalLoanBalance);
+        }
+      });
+
+      totalExpenses += realEstateExpenses;
+      let savings = netIncome - totalExpenses;
+      cumulativeWealth = (cumulativeWealth * (1 + (s.investmentReturn ?? 7) / 100)) + savings + realEstateEquity;
+
+      projections.push({
+        year,
+        grossIncome,
+        netIncome,
+        totalExpenses,
+        savings,
+        cumulativeWealth,
+        taxes,
+        realEstateValue,
+        realEateEquity: realEstateEquity,
+        loanBalance: totalLoanBalance,
+        // Optionally: add fedTaxes, stateTaxes
+      });
+    }
+    return projections;
   };
 
   const exportData = {

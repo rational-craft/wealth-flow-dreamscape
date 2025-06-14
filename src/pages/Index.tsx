@@ -19,6 +19,7 @@ import { TrendingUp, DollarSign, Calculator, PieChart, Home, Target, CreditCard,
 import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 import { DataTable } from '@/components/DataTable';
 import { scenarioService } from '@/services/ScenarioService';
+import { NLPChatBox } from "@/components/NLPChatBox";
 
 export interface IncomeSource {
   id: string;
@@ -393,6 +394,46 @@ const Index = () => {
     scenarioName: scenarioService.getCurrentScenario().name
   };
 
+  // Handler for NLPChatBox actions
+  const handleNLPAction = (action: { type: string; data: any }) => {
+    if (action.type === "set-salary") {
+      let { salary, growthRate, year } = action.data;
+      if (!salary) return;
+      // Try to find an existing salary for year 1, otherwise add new
+      setIncomes((prev) => {
+        // For MVP, only update year 1 "salary" row
+        let found = false;
+        const newArr = prev.map((inc) => {
+          if (inc.type === "salary" && (!inc.bonusYear || inc.bonusYear === year)) {
+            found = true;
+            return {
+              ...inc,
+              amount: salary,
+              growthRate: growthRate !== undefined ? growthRate : inc.growthRate
+            };
+          }
+          return inc;
+        });
+        // If not found, add
+        if (!found) {
+          return [
+            ...newArr,
+            {
+              id: Date.now().toString(),
+              name: "Salary",
+              type: "salary",
+              amount: salary,
+              frequency: "annually",
+              growthRate: growthRate || 0,
+              taxRate: 0
+            }
+          ];
+        }
+        return newArr;
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -406,6 +447,8 @@ const Index = () => {
           <p className="text-lg text-slate-600">
             Plan your financial future with comprehensive income, expense, tax, and real estate modeling
           </p>
+          {/* NLP Chat Box goes right here */}
+          <NLPChatBox onAction={handleNLPAction} />
         </div>
 
         {/* Place the forecast chart at the top of the home page */}

@@ -1,16 +1,19 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { IncomeSource, WealthProjection } from '@/pages/Index';
 import { Calculator, TrendingDown, Info } from 'lucide-react';
-import { calculateTotalTax, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
+import { calculateTotalTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES } from '@/utils/taxCalculator';
 
 interface TaxCalculatorProps {
   incomes: IncomeSource[];
   projections: WealthProjection[];
+  state: keyof typeof STATE_TAX_RATES;
+  filingStatus: keyof typeof FEDERAL_TAX_BRACKETS;
 }
 
-export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projections }) => {
+export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projections, state, filingStatus }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -25,26 +28,41 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
   };
 
   const getTaxByIncomeType = (year: number) => {
-    const taxBreakdown: Record<string, { amount: number; percentage: number }> = {};
+    const taxBreakdown: Record<string, { amount: number; percentage: number; grossIncome: number }> = {};
 
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-      const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      const taxVal = calculateTotalTax(adjustedAmount, income.type);
-
-      let taxAmount = 0;
-      if (typeof taxVal === "number") {
-        taxAmount = taxVal;
-      } else if (taxVal && typeof taxVal === "object" && "federal" in taxVal && "state" in taxVal) {
-        taxAmount = taxVal.federal + taxVal.state;
+      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      
+      // Handle RSU vesting logic
+      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+        const traunchSize = (income.amount || 0) / income.vestingLength;
+        const vestingYear = income.vestingStartYear;
+        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+          adjustedAmount = traunchSize;
+        } else {
+          adjustedAmount = 0;
+        }
       }
 
-      if (!taxBreakdown[income.type]) {
-        taxBreakdown[income.type] = { amount: 0, percentage: 0 };
-      }
+      if (adjustedAmount > 0) {
+        const taxVal = calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
 
-      taxBreakdown[income.type].amount += taxAmount;
-      taxBreakdown[income.type].percentage = adjustedAmount > 0 ? (taxAmount / adjustedAmount) * 100 : 0;
+        let taxAmount = 0;
+        if (typeof taxVal === "number") {
+          taxAmount = taxVal;
+        } else if (taxVal && typeof taxVal === "object" && "federal" in taxVal && "state" in taxVal) {
+          taxAmount = taxVal.federal + taxVal.state;
+        }
+
+        if (!taxBreakdown[income.type]) {
+          taxBreakdown[income.type] = { amount: 0, percentage: 0, grossIncome: 0 };
+        }
+
+        taxBreakdown[income.type].amount += taxAmount;
+        taxBreakdown[income.type].grossIncome += adjustedAmount;
+        taxBreakdown[income.type].percentage = (taxAmount / adjustedAmount) * 100;
+      }
     });
 
     return taxBreakdown;
@@ -54,15 +72,29 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     let fed = 0, state = 0;
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-      const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      const split = calculateTotalTax(adjustedAmount, income.type, undefined, undefined, { split: true });
+      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      
+      // Handle RSU vesting logic
+      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+        const traunchSize = (income.amount || 0) / income.vestingLength;
+        const vestingYear = income.vestingStartYear;
+        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+          adjustedAmount = traunchSize;
+        } else {
+          adjustedAmount = 0;
+        }
+      }
 
-      if (typeof split === "number") {
-        fed += split;
-        // state stays 0
-      } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
-        fed += split.federal;
-        state += split.state;
+      if (adjustedAmount > 0) {
+        const split = calculateTotalTax(adjustedAmount, income.type, state, filingStatus, { split: true });
+
+        if (typeof split === "number") {
+          fed += split;
+          // state stays 0
+        } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
+          fed += split.federal;
+          state += split.state;
+        }
       }
     });
     return { fed, state };
@@ -77,7 +109,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
   const currentYearTaxes = getTaxByIncomeType(1);
   const totalCurrentTax = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.amount, 0);
-  const totalCurrentIncome = projections[0]?.grossIncome || 0;
+  const totalCurrentIncome = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.grossIncome, 0);
   const effectiveTaxRate = totalCurrentIncome > 0 ? (totalCurrentTax / totalCurrentIncome) * 100 : 0;
 
   const getIncomeTypeLabel = (type: string) => {
@@ -86,6 +118,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       freelance: 'Freelance Income',
       investment: 'Investment Income',
       equity: 'Equity Compensation',
+      rsu: 'RSU Income',
+      bonus: 'Bonus Income',
       other: 'Other Income'
     };
     return labels[type] || type;
@@ -97,6 +131,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       freelance: 'bg-green-500',
       investment: 'bg-purple-500',
       equity: 'bg-orange-500',
+      rsu: 'bg-pink-500',
+      bonus: 'bg-yellow-500',
       other: 'bg-gray-500'
     };
     return colors[type] || 'bg-gray-500';
@@ -104,11 +140,13 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
   const getTaxExplanation = (type: string) => {
     const explanations: Record<string, string> = {
-      salary: 'Progressive federal tax brackets + ~5% average state tax',
+      salary: 'Progressive federal tax brackets + state tax',
       freelance: 'Progressive federal tax + 14.13% self-employment tax + state tax',
       investment: '15% long-term capital gains rate (for most earners)',
       equity: 'Progressive tax brackets (treated as ordinary income)',
-      other: 'Progressive federal tax brackets + average state tax'
+      rsu: 'Progressive tax brackets (treated as ordinary income)',
+      bonus: 'Progressive tax brackets (treated as ordinary income)',
+      other: 'Progressive federal tax brackets + state tax'
     };
     return explanations[type] || 'Standard progressive taxation';
   };
@@ -120,7 +158,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         <h3 className="text-xl font-semibold text-slate-800">Tax Analysis</h3>
         <div className="flex items-center gap-2 text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
           <Info className="w-4 h-4" />
-          Based on 2024 tax brackets & rates
+          Filing Status: {FILING_STATUSES[filingStatus]} | State: {state}
         </div>
       </div>
 
@@ -142,7 +180,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
               <span>State: {formatCurrency(year1TaxSplit.state)}</span>
             </div>
             <p className="text-xs text-red-600 mt-1">
-              Auto-calculated current year
+              Current year calculation
             </p>
           </CardContent>
         </Card>
@@ -224,14 +262,14 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         </CardContent>
       </Card>
 
-      {/* 2024 Tax Brackets Reference */}
+      {/* Tax Brackets Reference */}
       <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
         <CardHeader>
-          <CardTitle className="text-lg">2024 Federal Tax Brackets (Single Filer)</CardTitle>
+          <CardTitle className="text-lg">2024 Federal Tax Brackets ({FILING_STATUSES[filingStatus]})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FEDERAL_TAX_BRACKETS.single.map((bracket, index) => (
+            {FEDERAL_TAX_BRACKETS[filingStatus].map((bracket, index) => (
               <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
                 <span className="text-sm">
                   {formatCurrency(bracket.min)} - {bracket.max === Infinity ? '∞' : formatCurrency(bracket.max)}

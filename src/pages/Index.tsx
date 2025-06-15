@@ -737,7 +737,12 @@ const Index = () => {
 
           <TabsContent value="taxes" className="space-y-6">
             <Card className="p-6">
-              <TaxCalculator incomes={incomes} projections={projections} />
+              <TaxCalculator 
+                incomes={incomes} 
+                projections={projections} 
+                state={state}
+                filingStatus={filingStatus}
+              />
             </Card>
           </TabsContent>
 

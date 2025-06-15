@@ -9,6 +9,18 @@ import { WealthProjection, IncomeSource, ExpenseCategory } from '@/pages/Index';
 import { TrendingUp, DollarSign, PiggyBank, Target } from 'lucide-react';
 import { STATE_TAX_RATES, FILING_STATUSES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
 
+const STATE_ABBREVIATIONS: Record<string, string> = {
+  'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA', 'Colorado': 'CO',
+  'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+  'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA',
+  'Maine': 'ME', 'Maryland': 'MD', 'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+  'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+  'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 
+  'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC', 
+  'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT', 'Virginia': 'VA', 
+  'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC'
+};
+
 interface WealthDashboardProps {
   projections: WealthProjection[];
   initialWealth: number;
@@ -83,49 +95,52 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Configuration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="border-blue-200">
-          <CardHeader className="pb-3">
-            <Label htmlFor="initial-wealth" className="text-sm font-medium text-slate-700">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+        {/* Current Net Worth */}
+        <Card className="border-blue-200 p-0">
+          <CardHeader className="pb-1 px-3 pt-2">
+            <Label htmlFor="initial-wealth" className="text-xs font-semibold text-slate-700">
               Current Net Worth
             </Label>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-2 px-3">
             <Input
               id="initial-wealth"
               type="number"
               value={initialWealth}
               onChange={(e) => setInitialWealth(Number(e.target.value))}
-              className="text-lg font-semibold"
+              className="text-base font-semibold h-8 px-2 py-1"
             />
           </CardContent>
         </Card>
 
-        <Card className="border-green-200">
-          <CardHeader className="pb-3">
-            <Label htmlFor="investment-return" className="text-sm font-medium text-slate-700">
+        {/* Expected Annual Return (%) */}
+        <Card className="border-green-200 p-0">
+          <CardHeader className="pb-1 px-3 pt-2">
+            <Label htmlFor="investment-return" className="text-xs font-semibold text-slate-700">
               Expected Annual Return (%)
             </Label>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-2 px-3">
             <Input
               id="investment-return"
               type="number"
               step="0.1"
               value={investmentReturn}
               onChange={(e) => setInvestmentReturn(Number(e.target.value))}
-              className="text-lg font-semibold"
+              className="text-base font-semibold h-8 px-2 py-1"
             />
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200">
-          <CardHeader className="pb-3">
-            <Label htmlFor="projection-years" className="text-sm font-medium text-slate-700">
+        {/* Projection Years */}
+        <Card className="border-purple-200 p-0">
+          <CardHeader className="pb-1 px-3 pt-2">
+            <Label htmlFor="projection-years" className="text-xs font-semibold text-slate-700">
               Projection Years
             </Label>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-2 px-3">
             <Input
               id="projection-years"
               type="number"
@@ -133,26 +148,29 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
               max="50"
               value={projectionYears}
               onChange={(e) => setProjectionYears(Number(e.target.value))}
-              className="text-lg font-semibold"
+              className="text-base font-semibold h-8 px-2 py-1"
             />
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200">
-          <CardHeader className="pb-3">
-            <Label className="text-sm font-medium text-slate-700">
+        {/* State */}
+        <Card className="border-orange-200 p-0">
+          <CardHeader className="pb-1 px-3 pt-2">
+            <Label className="text-xs font-semibold text-slate-700">
               State
             </Label>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-2 px-3">
             <Select value={state} onValueChange={(value) => setState(value as keyof typeof STATE_TAX_RATES)}>
-              <SelectTrigger className="text-lg font-semibold">
-                <SelectValue />
+              <SelectTrigger className="text-base font-semibold h-8 px-2 py-1">
+                <SelectValue>
+                  {STATE_ABBREVIATIONS[state as string] ?? state}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(STATE_TAX_RATES).map((stateName) => (
                   <SelectItem key={stateName} value={stateName}>
-                    {stateName}
+                    {STATE_ABBREVIATIONS[stateName] ?? stateName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -160,15 +178,16 @@ export const WealthDashboard: React.FC<WealthDashboardProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="border-indigo-200">
-          <CardHeader className="pb-3">
-            <Label className="text-sm font-medium text-slate-700">
+        {/* Filing Status */}
+        <Card className="border-indigo-200 p-0">
+          <CardHeader className="pb-1 px-3 pt-2">
+            <Label className="text-xs font-semibold text-slate-700">
               Filing Status
             </Label>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-2 px-3">
             <Select value={filingStatus} onValueChange={(value) => setFilingStatus(value as keyof typeof FEDERAL_TAX_BRACKETS)}>
-              <SelectTrigger className="text-lg font-semibold">
+              <SelectTrigger className="text-base font-semibold h-8 px-2 py-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

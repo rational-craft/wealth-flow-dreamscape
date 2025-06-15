@@ -21,6 +21,7 @@ import { DataTable } from '@/components/DataTable';
 import { scenarioService } from '@/services/ScenarioService';
 import { NLPChatBox } from "@/components/NLPChatBox";
 import { ConditionalLogicChat } from "@/components/ConditionalLogicChat";
+import SummaryDashboard from '@/components/SummaryDashboard';
 
 export interface IncomeSource {
   id: string;
@@ -485,9 +486,6 @@ const Index = () => {
           onScenarioUpdate={() => {}}
         />
 
-        {/* Removed summary sections for income and expenses */}
-        {/* Removed RetirementSettings section from here */}
-
         <div className="mb-6">
           <WealthDashboard 
             projections={projections}
@@ -508,8 +506,12 @@ const Index = () => {
           />
         </div>
 
-        <Tabs defaultValue="income" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-11 bg-white shadow-sm">
+        <Tabs defaultValue="summary" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-12 bg-white shadow-sm">
+            <TabsTrigger value="summary" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Summary
+            </TabsTrigger>
             <TabsTrigger value="income" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Income
@@ -555,6 +557,19 @@ const Index = () => {
               Retirement
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="summary" className="space-y-6">
+            <Card className="p-6">
+              <SummaryDashboard
+                incomes={incomes}
+                expenses={expenses}
+                equityPayouts={equityPayouts}
+                properties={properties}
+                projections={projections}
+                projectionYears={projectionYears}
+              />
+            </Card>
+          </TabsContent>
 
           <TabsContent value="income" className="space-y-6">
             <Card className="p-6">

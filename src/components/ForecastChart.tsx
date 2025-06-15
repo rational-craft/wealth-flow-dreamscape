@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { WealthProjection } from '@/pages/Index';
 import { TrendingUp, BarChart3, LineChart as LineChartIcon, PieChart } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 
 interface ForecastChartProps {
   projections: WealthProjection[];

@@ -3,11 +3,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { FIELDS, OPERATORS, FieldType, FieldDefinition } from "@/utils/fieldSchema";
-import { suggestFields, suggestOperators, suggestValues } from "@/utils/suggestLogic";
+import { suggestFields, suggestOperators, suggestValues, toLogicJSON, parseLogic, toLogicText } from "@/utils/suggestLogic";
 import { LogicOutput } from "./LogicOutput";
 import { Search, Check, X } from "lucide-react";
 
-export const ConditionalLogicChat: React.FC = () => {
+interface ConditionalLogicChatProps {
+  onLogicSubmit?: (logicJSON: any) => void;
+}
+
+export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLogicSubmit }) => {
   const [userInput, setUserInput] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [step, setStep] = useState<"field"|"operator"|"value"|"logic">("field");
@@ -125,6 +129,16 @@ export const ConditionalLogicChat: React.FC = () => {
   // The full, chained expression for output
   const logicText = logic.join(" ");
 
+  // "Go" submit handler
+  const handleGo = () => {
+    // Output both text and JSON to parent
+    const parsed = parseLogic(logicText);
+    const json = toLogicJSON(parsed);
+    if (onLogicSubmit) {
+      onLogicSubmit(json);
+    }
+  };
+
   return (
     <Card className="max-w-2xl mx-auto p-4 mt-8 shadow border-blue-200 bg-white/90 space-y-3">
       <div className="text-lg font-semibold flex items-center gap-2">
@@ -198,7 +212,22 @@ export const ConditionalLogicChat: React.FC = () => {
         ))}
       </div>
 
-      {logic.length > 0 && <LogicOutput input={logicText} />}
+      {logic.length > 0 && (
+        <>
+          <LogicOutput input={logicText} />
+          {/* "Go" button for submitting logic */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow font-semibold transition-all"
+              onClick={handleGo}
+            >
+              Go
+            </button>
+          </div>
+        </>
+      )}
     </Card>
   );
 };
+

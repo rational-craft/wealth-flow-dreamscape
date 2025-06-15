@@ -20,6 +20,7 @@ import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BR
 import { DataTable } from '@/components/DataTable';
 import { scenarioService } from '@/services/ScenarioService';
 import { NLPChatBox } from "@/components/NLPChatBox";
+import { ConditionalLogicChat } from "@/components/ConditionalLogicChat";
 
 export interface IncomeSource {
   id: string;
@@ -434,6 +435,30 @@ const Index = () => {
     }
   };
 
+  // Handler for logic builder actions
+  const handleLogicSubmit = (logicJSON: any) => {
+    // For proto/dev: just log to console and show a notification
+    console.log("Logic submitted:", logicJSON);
+
+    // Show a toast for user feedback (using shadcn's useToast)
+    // (import useToast from hooks, as shadcn moved it)
+    // Avoid error if not in UI context
+    try {
+      // eslint-disable-next-line
+      // @ts-ignore
+      import("@/hooks/use-toast").then(({ toast }) => {
+        toast({
+          title: "Logic submitted!",
+          description: (
+            <pre className="text-xs whitespace-pre-wrap max-w-xs">{JSON.stringify(logicJSON, null, 2)}</pre>
+          ),
+        });
+      });
+    } catch (err) {
+      /* best effort */
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
 
@@ -447,8 +472,8 @@ const Index = () => {
           <p className="text-lg text-slate-600">
             Plan your financial future with comprehensive income, expense, tax, and real estate modeling
           </p>
-          {/* NLP Chat Box goes right here */}
-          <NLPChatBox onAction={handleNLPAction} />
+          {/* Replace NLPChatBox with conditional logic builder */}
+          <ConditionalLogicChat onLogicSubmit={handleLogicSubmit} />
         </div>
 
         {/* Place the forecast chart at the top of the home page */}

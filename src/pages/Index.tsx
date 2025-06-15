@@ -136,6 +136,64 @@ const Index = () => {
   const [withdrawalRate, setWithdrawalRate] = useState(4);
   const [enableRetirementMode, setEnableRetirementMode] = useState(false);
 
+  // Generate real estate expenses automatically
+  const generateRealEstateExpenses = (): ExpenseCategory[] => {
+    const realEstateExpenses: ExpenseCategory[] = [];
+    
+    properties.forEach(property => {
+      // Generate mortgage payment expense if there's a loan
+      if (property.loanAmount > 0 && property.interestRate > 0) {
+        const monthlyRate = property.interestRate / 100 / 12;
+        const numPayments = property.loanTermYears * 12;
+        const monthlyPayment = property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+        
+        realEstateExpenses.push({
+          id: `mortgage-${property.id}`,
+          name: `Mortgage Payment - ${property.name}`,
+          amount: monthlyPayment,
+          frequency: 'monthly',
+          growthRate: 0, // Mortgage payments are typically fixed
+          isFixed: true
+        });
+      }
+      
+      // Generate property tax expense
+      const annualPropertyTax = property.purchasePrice * (property.propertyTaxRate / 100);
+      realEstateExpenses.push({
+        id: `property-tax-${property.id}`,
+        name: `Property Tax - ${property.name}`,
+        amount: annualPropertyTax,
+        frequency: 'annually',
+        growthRate: 2, // Property taxes typically grow with inflation
+        isFixed: false
+      });
+      
+      // Generate maintenance expense
+      const annualMaintenance = property.purchasePrice * (property.maintenanceRate / 100);
+      realEstateExpenses.push({
+        id: `maintenance-${property.id}`,
+        name: `Maintenance - ${property.name}`,
+        amount: annualMaintenance,
+        frequency: 'annually',
+        growthRate: 3, // Maintenance costs typically grow faster than inflation
+        isFixed: false
+      });
+    });
+    
+    return realEstateExpenses;
+  };
+
+  // Combine user expenses with generated real estate expenses
+  const getAllExpenses = (): ExpenseCategory[] => {
+    const userExpenses = expenses.filter(expense => 
+      !expense.id.startsWith('mortgage-') && 
+      !expense.id.startsWith('property-tax-') && 
+      !expense.id.startsWith('maintenance-')
+    );
+    const realEstateExpenses = generateRealEstateExpenses();
+    return [...userExpenses, ...realEstateExpenses];
+  };
+
   // SCENARIO DATA LOADING/SAVING
   React.useEffect(() => {
     // On scenario change, load scenario data into the UI state.
@@ -176,48 +234,116 @@ const Index = () => {
     currentScenarioId,
   ]);
 
-  // --- FIX (and Type) tax arithmetic ---
+  // Updated tax calculation to work with subtotals by income type
+  const calculateTaxesByIncomeType = (year: number) => {
+    // Group income by type and calculate subtotals
+    const incomeSubtotals: Record<string, number> = {};
+    
+    incomes.forEach(income => {
+      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      
+      // Handle RSU vesting logic
+      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+        const traunchSize = (income.amount || 0) / income.vestingLength;
+        const vestingYear = income.vestingStartYear;
+        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+          adjustedAmount = traunchSize;
+        } else {
+          adjustedAmount = 0;
+        }
+      }
+      
+      if (!incomeSubtotals[income.type]) {
+        incomeSubtotals[income.type] = 0;
+      }
+      incomeSubtotals[income.type] += adjustedAmount;
+    });
+
+    // Add equity payouts for this year
+    const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
+    yearlyEquityPayouts.forEach(payout => {
+      if (!incomeSubtotals['equity']) {
+        incomeSubtotals['equity'] = 0;
+      }
+      incomeSubtotals['equity'] += payout.amount;
+    });
+
+    // Calculate taxes based on subtotals
+    let totalTaxes = 0;
+    Object.entries(incomeSubtotals).forEach(([type, amount]) => {
+      if (amount > 0) {
+        const taxValue = calculateTotalTax(amount, type, state, filingStatus);
+        const tax = typeof taxValue === "number" ? taxValue : (taxValue.federal + taxValue.state);
+        totalTaxes += tax;
+      }
+    });
+
+    return totalTaxes;
+  };
+
+  // Updated projection calculations
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
     let cumulativeWealth = initialWealth;
+    const allExpenses = getAllExpenses();
 
     for (let year = 1; year <= projectionYears; year++) {
       let grossIncome = 0;
-      let taxes = 0;
-
+      
       // Retirement Mode check
       const currentAge = 30 + year;
       const isRetired = enableRetirementMode && currentAge >= retirementAge;
 
       if (!isRetired) {
-        // All income sources; each tax calculated as a number below
+        // Calculate gross income
         incomes.forEach(income => {
           const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-          const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+          let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+          
+          // Handle RSU vesting logic
+          if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+            const traunchSize = (income.amount || 0) / income.vestingLength;
+            const vestingYear = income.vestingStartYear;
+            if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+              adjustedAmount = traunchSize;
+            } else {
+              adjustedAmount = 0;
+            }
+          }
+          
           grossIncome += adjustedAmount;
-          const taxValue = calculateTotalTax(adjustedAmount, income.type, state as keyof typeof STATE_TAX_RATES, filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
-          taxes += typeof taxValue === "number" ? taxValue : ((taxValue.federal ?? 0) + (taxValue.state ?? 0));
         });
 
-        // Equity payouts
+        // Add equity payouts
         const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
         yearlyEquityPayouts.forEach(payout => {
           grossIncome += payout.amount;
-          const taxValue = calculateTotalTax(payout.amount, 'equity', state as keyof typeof STATE_TAX_RATES, filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
-          taxes += typeof taxValue === "number" ? taxValue : ((taxValue.federal ?? 0) + (taxValue.state ?? 0));
         });
       }
 
+      // Calculate taxes using the new subtotal method
+      const taxes = isRetired ? 0 : calculateTaxesByIncomeType(year);
       const netIncome = grossIncome - taxes;
 
-      // Calculate expenses including real estate
+      // Calculate expenses including auto-generated real estate expenses
       let totalExpenses = 0;
-      expenses.forEach(expense => {
+      allExpenses.forEach(expense => {
+        // Skip real estate expenses that haven't started yet
+        if (expense.id.includes('mortgage-') || expense.id.includes('property-tax-') || expense.id.includes('maintenance-')) {
+          const propertyId = expense.id.split('-')[1];
+          const property = properties.find(p => p.id === propertyId);
+          if (property && year < property.purchaseYear) {
+            return; // Skip this expense if property hasn't been purchased yet
+          }
+        }
+        
         const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
         const adjustedAmount = annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
         totalExpenses += adjustedAmount;
       });
 
+      // Calculate real estate value and equity
       let realEstateValue = 0;
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
@@ -243,8 +369,6 @@ const Index = () => {
           realEstateEquity += currentValue - Math.max(0, totalLoanBalance);
         }
       });
-
-      totalExpenses += realEstateExpenses;
 
       let savings = netIncome - totalExpenses;
       if (isRetired && enableRetirementMode) {
@@ -501,7 +625,7 @@ const Index = () => {
             setFilingStatus={setFilingStatus}
             incomes={incomes}
             setIncomes={setIncomes}
-            expenses={expenses}
+            expenses={getAllExpenses()}
             setExpenses={setExpenses}
           />
         </div>
@@ -562,7 +686,7 @@ const Index = () => {
             <Card className="p-6">
               <SummaryDashboard
                 incomes={incomes}
-                expenses={expenses}
+                expenses={getAllExpenses()}
                 equityPayouts={equityPayouts}
                 properties={properties}
                 projections={projections}
@@ -579,7 +703,7 @@ const Index = () => {
 
           <TabsContent value="expenses" className="space-y-6">
             <Card className="p-6">
-              <ExpenseManager expenses={expenses} setExpenses={setExpenses} />
+              <ExpenseManager expenses={getAllExpenses()} setExpenses={setExpenses} />
             </Card>
           </TabsContent>
 
@@ -652,7 +776,7 @@ const Index = () => {
               <div id="data-table">
                 <DataTable 
                   incomes={incomes}
-                  expenses={expenses}
+                  expenses={getAllExpenses()}
                   equityPayouts={equityPayouts}
                   properties={properties}
                   projections={projections}

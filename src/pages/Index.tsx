@@ -472,8 +472,6 @@ const Index = () => {
           <p className="text-lg text-slate-600">
             Plan your financial future with comprehensive income, expense, tax, and real estate modeling
           </p>
-          {/* Replace NLPChatBox with conditional logic builder */}
-          <ConditionalLogicChat onLogicSubmit={handleLogicSubmit} />
         </div>
 
         {/* Place the forecast chart at the top of the home page */}

@@ -16,7 +16,7 @@ import { ExportButtons } from '@/components/ExportButtons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Calculator, PieChart, Home, Target, CreditCard, BarChart3, Settings, FileSpreadsheet } from 'lucide-react';
-import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS } from '@/utils/taxCalculator';
+import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS, FILING_STATUSES } from '@/utils/taxCalculator';
 import { DataTable } from '@/components/DataTable';
 import { scenarioService } from '@/services/ScenarioService';
 import { NLPChatBox } from "@/components/NLPChatBox";

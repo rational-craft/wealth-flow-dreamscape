@@ -654,6 +654,78 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {/* --- BEGIN: Model Assumptions & Forecast Summary --- */}
+      <section className="container mx-auto pb-16 pt-8">
+        <div className="bg-white p-7 md:p-10 rounded-xl shadow-lg border border-slate-200 max-w-4xl mx-auto">
+          <h2 className="text-2xl font-extrabold text-slate-800 mb-3">Model Assumptions & Forecast Summary</h2>
+          <p className="mb-4 text-slate-700 leading-relaxed">
+            <span className="font-semibold text-slate-800">Overview:</span><br />
+            This financial model provides a comprehensive 10,000-foot view of your personal wealth trajectory, integrating all relevant sources of income, expenses, taxes, investments, real estate, and scenario planning. The outcome: year-by-year projections of your net worth, savings, and cash flow under various user-defined assumptions, helping you visualize the impact of your financial decisions.
+          </p>
+          <p className="mb-2 text-slate-700">
+            <span className="font-semibold">Key Inputs Analyzed:</span>
+            <ul className="list-disc list-inside ml-2 mt-1 text-slate-700">
+              <li>
+                <span className="font-semibold">Initial Net Worth:</span> The model starts with your provided net worth of <span className="font-mono">{new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0}).format(initialWealth)}</span>.
+              </li>
+              <li>
+                <span className="font-semibold">Income Streams:</span> All defined sources of income—including salaries, freelancing, investments, equity, real estate, or other categories—are incorporated with their own growth rates, frequencies, and tax treatments.
+              </li>
+              <li>
+                <span className="font-semibold">Expense Categories:</span> All user-entered expense categories are modeled with projected inflation or growth and are accounted for monthly or annually as specified.
+              </li>
+              <li>
+                <span className="font-semibold">Investment Return:</span> Every year, your growing net worth is compounded by your selected expected annual investment return (<span className="font-mono">{investmentReturn}%</span>), reflecting asset growth.
+              </li>
+              <li>
+                <span className="font-semibold">Projection Horizon:</span> The model spans <span className="font-mono">{projectionYears}</span> years, visualizing long-term outcomes.
+              </li>
+              <li>
+                <span className="font-semibold">Taxation:</span> Federal and state tax calculations apply to each income source annually, using the filing status of <span className="font-mono">{FILING_STATUSES[filingStatus]}</span> and selected state (<span className="font-mono">{state}</span>), incorporating progressive bracket rules where appropriate.
+              </li>
+              <li>
+                <span className="font-semibold">Real Estate & Loans:</span> Any properties and their associated debt, maintenance, tax rates, and home appreciation are fully integrated. Mortgage amortization and real estate equity are dynamically calculated over time.
+              </li>
+              <li>
+                <span className="font-semibold">Scenario Planning:</span> All forecasts are scenario-driven, supporting side-by-side comparisons for alternate assumptions (e.g., life stages, job changes, market shocks).
+              </li>
+            </ul>
+          </p>
+          <p className="mt-4 mb-2 text-slate-700">
+            <span className="font-semibold">Forecast Methodology & Assumptions:</span>
+            <ul className="list-disc list-inside ml-2 mt-1 text-slate-700">
+              <li>
+                <span className="font-semibold">Compound Growth:</span> Wealth growth is governed by the reinvestment of annual savings, compounded at the selected rate. Negative savings (i.e., spending more than you make) are subtracted from assets.
+              </li>
+              <li>
+                <span className="font-semibold">Tax Modeling:</span> The model fully applies federal and state tax brackets annually. Investment income assumes capital gains treatment where applicable, while self-employment and equity are modeled per IRS guidelines.
+              </li>
+              <li>
+                <span className="font-semibold">Expense & Income Growth:</span> User-defined growth rates (such as inflation or merit increases) are applied automatically to each input every year.
+              </li>
+              <li>
+                <span className="font-semibold">Real Estate:</span> If you add properties, the model tracks equity accrual, loan payoff, home appreciation, and all annual carrying costs, for true net worth accuracy.
+              </li>
+              <li>
+                <span className="font-semibold">No Market Crash Modeling:</span> Base forecasts assume steady growth and do not model black swan market downturns; however, the Monte Carlo feature can be used for probabilistic scenarios.
+              </li>
+              <li>
+                <span className="font-semibold">Retirement Mode:</span> If enabled, the model switches from income accumulation to systematic withdrawals based on your chosen rate, with spending drawn from assets beyond your retirement age.
+              </li>
+              <li>
+                <span className="font-semibold">Debt & Other Factors:</span> Debt payments, if modeled, are factored into annual outflows.
+              </li>
+            </ul>
+          </p>
+          <p className="mt-4 text-slate-700">
+            <span className="font-semibold">Expert Interpretation:</span> These forecasts provide an illustrative, directional roadmap based on the information you provide. Outcomes depend critically on actual returns, spending discipline, unplanned life events, tax law changes, and market volatility. The tool is ideal for scenario analysis, long-term goal setting, and understanding which variables most influence your wealth trajectory—but it is not a guarantee of future results.
+          </p>
+          <p className="mt-5 text-slate-500 text-xs">
+            <span className="font-semibold">Limitations & Disclaimers:</span> This model is for educational use and planning support. For legal, tax, or investment decisions, please consult with an independent professional advisor.
+          </p>
+        </div>
+      </section>
+      {/* --- END: Model Assumptions & Forecast Summary --- */}
     </div>
   );
 };

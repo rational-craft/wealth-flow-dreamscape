@@ -486,6 +486,7 @@ const Index = () => {
         />
 
         {/* Removed summary sections for income and expenses */}
+        {/* Removed RetirementSettings section from here */}
 
         <div className="mb-6">
           <WealthDashboard 
@@ -507,19 +508,8 @@ const Index = () => {
           />
         </div>
 
-        <div className="mb-6">
-          <RetirementSettings
-            retirementAge={retirementAge}
-            setRetirementAge={setRetirementAge}
-            withdrawalRate={withdrawalRate}
-            setWithdrawalRate={setWithdrawalRate}
-            enableRetirementMode={enableRetirementMode}
-            setEnableRetirementMode={setEnableRetirementMode}
-          />
-        </div>
-
         <Tabs defaultValue="income" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-10 bg-white shadow-sm">
+          <TabsList className="grid w-full grid-cols-11 bg-white shadow-sm">
             <TabsTrigger value="income" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Income
@@ -559,6 +549,10 @@ const Index = () => {
             <TabsTrigger value="data" className="flex items-center gap-2">
               <FileSpreadsheet className="w-4 h-4" />
               Data
+            </TabsTrigger>
+            <TabsTrigger value="retirement" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Retirement
             </TabsTrigger>
           </TabsList>
 
@@ -650,6 +644,19 @@ const Index = () => {
                   projectionYears={projectionYears}
                 />
               </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="retirement" className="space-y-6">
+            <Card className="p-6">
+              <RetirementSettings
+                retirementAge={retirementAge}
+                setRetirementAge={setRetirementAge}
+                withdrawalRate={withdrawalRate}
+                setWithdrawalRate={setWithdrawalRate}
+                enableRetirementMode={enableRetirementMode}
+                setEnableRetirementMode={setEnableRetirementMode}
+              />
             </Card>
           </TabsContent>
         </Tabs>

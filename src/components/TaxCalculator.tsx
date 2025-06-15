@@ -69,7 +69,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
   };
 
   const getFederalStateTax = (year: number) => {
-    let fed = 0, state = 0;
+    let fed = 0, stateTax = 0;
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
       let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
@@ -90,14 +90,14 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
         if (typeof split === "number") {
           fed += split;
-          // state stays 0
+          // stateTax stays 0
         } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
           fed += split.federal;
-          state += split.state;
+          stateTax += split.state;
         }
       }
     });
-    return { fed, state };
+    return { fed, state: stateTax };
   };
 
   const year1TaxSplit = getFederalStateTax(1);

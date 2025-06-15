@@ -11,10 +11,7 @@ interface ForecastChartProps {
 }
 
 export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => {
-  const [chartType, setChartType] = useState<'wealth' | 'income' | 'breakdown'>('wealth');
-  const [selectedYear, setSelectedYear] = useState(
-    projections.length > 0 ? projections.length : 1
-  );
+  const [chartType, setChartType] = React.useState<'wealth' | 'income' | 'breakdown'>('wealth');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -159,9 +156,6 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => 
     </ResponsiveContainer>
   );
 
-  // Find data for selected year -- may be used for tooltips or below chart
-  const selectedYearData = projections.find(p => p.year === selectedYear) || projections[0] || null;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -196,30 +190,6 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => 
           Annual Breakdown
         </Button>
       </div>
-
-      {/* YEAR SELECTION SLIDER (NEW: moved here per user request) */}
-      {projections.length > 1 && (
-        <div className="w-full flex flex-col md:flex-row items-center justify-center bg-white/70 border border-slate-200 py-1.5 rounded-lg">
-          <span className="text-xs md:text-sm font-medium text-slate-700 pr-2 whitespace-nowrap">Year {selectedYear}</span>
-          <div className="flex-1 flex flex-col">
-            <Slider
-              value={[selectedYear]}
-              onValueChange={v => setSelectedYear(v[0])}
-              max={projections.length}
-              min={1}
-              step={1}
-              className="w-full mx-3"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-0.5">
-              <span>1</span>
-              <span>{projections.length}</span>
-            </div>
-          </div>
-          <span className="text-xs md:text-sm text-slate-500 pl-2 whitespace-nowrap">
-            {formatYear(selectedYear)}
-          </span>
-        </div>
-      )}
 
       {/* Chart Display */}
       <Card>

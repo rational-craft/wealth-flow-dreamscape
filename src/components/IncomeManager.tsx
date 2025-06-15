@@ -57,25 +57,30 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
   const addIncome = () => {
     if (newIncome.name && newIncome.amount) {
-      // [Update] RSU logic: only add grant, do NOT add vestings to incomes.
+      // RSU logic: Create a row for each vesting year as an income
       if (newIncome.type === 'rsu' && newIncome.vestingLength && newIncome.vestingStartYear) {
-        const grantId = Date.now().toString();
-        const grant: BaseIncomeSource = {
-          id: grantId,
-          name: newIncome.name,
-          type: 'rsu',
-          amount: newIncome.amount,
-          frequency: 'annually',
-          growthRate: 0,
-          taxRate: 0,
-          vestingLength: newIncome.vestingLength,
-          vestingStartYear: newIncome.vestingStartYear,
-        };
-        setIncomes([...incomes, grant]);
+        const perYear = Math.round(newIncome.amount / newIncome.vestingLength);
+        const rows: BaseIncomeSource[] = [];
+        for (let i = 0; i < newIncome.vestingLength; i++) {
+          const vestYear = newIncome.vestingStartYear + i;
+          rows.push({
+            id: `${Date.now()}-rsu-${i}-${Math.floor(Math.random() * 10000)}`,
+            name: `${newIncome.name} (Vesting Year ${vestYear})`,
+            type: 'rsu',
+            amount: perYear,
+            frequency: 'annually',
+            growthRate: 0,
+            taxRate: getEffectiveTaxRate(perYear, 'rsu'),
+            vestingLength: 1, // Each row covers 1 year
+            vestingStartYear: vestYear,
+          });
+        }
+        setIncomes([...incomes, ...rows]);
         resetNewIncome();
         return;
       }
 
+      // ... keep existing code (other income types logic) the same ...
       const annualAmount = newIncome.frequency === 'monthly' ? newIncome.amount * 12 : newIncome.amount;
       const calculatedTaxRate = getEffectiveTaxRate(annualAmount, newIncome.type || 'salary');
 
@@ -555,7 +560,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
 
       {/* Existing Income Sources */}
       <div className="space-y-4">
-        {displayIncomes.map((income) => renderRows(income))}
+        {incomes.map((income) => renderRows(income))}
       </div>
     </div>
   );

@@ -198,6 +198,13 @@ export const calculateTotalTax = (
   return federal + stateTax;
 };
 
+// Calculate long-term capital gains tax (simplified 15% federal rate)
+export const calculateLTCGTax = (
+  income: number,
+): number => {
+  return income * 0.15;
+};
+
 export const getEffectiveTaxRate = (
   income: number,
   incomeType: string,

@@ -60,6 +60,10 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Tax Calculation Notes
+
+The app models taxes by income type. Federal, state, and long‑term capital gains (LTCG) amounts are tracked separately. LTCG uses a simplified 15% federal rate and is excluded from ordinary federal totals.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/6ef872c2-48b6-45d4-8451-23728b3b5d21) and click on Share -> Publish.

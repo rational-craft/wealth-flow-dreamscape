@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { IncomeSource, WealthProjection } from '@/pages/Index';
 import { Calculator, TrendingDown, Info } from 'lucide-react';
-import { calculateTotalTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES } from '@/utils/taxCalculator';
+import { calculateTotalTax, calculateLTCGTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES } from '@/utils/taxCalculator';
 
 interface TaxCalculatorProps {
   incomes: IncomeSource[];
@@ -28,48 +28,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
   };
 
   const getTaxByIncomeType = (year: number) => {
-    const taxBreakdown: Record<string, { amount: number; percentage: number; grossIncome: number }> = {};
+    const taxBreakdown: Record<string, { amount: number; percentage: number; grossIncome: number; federal: number; state: number; ltcg: number }> = {};
 
-    incomes.forEach(income => {
-      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      
-      // Handle RSU vesting logic
-      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
-        const traunchSize = (income.amount || 0) / income.vestingLength;
-        const vestingYear = income.vestingStartYear;
-        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
-          adjustedAmount = traunchSize;
-        } else {
-          adjustedAmount = 0;
-        }
-      }
-
-      if (adjustedAmount > 0) {
-        const taxVal = calculateTotalTax(adjustedAmount, income.type, state, filingStatus);
-
-        let taxAmount = 0;
-        if (typeof taxVal === "number") {
-          taxAmount = taxVal;
-        } else if (taxVal && typeof taxVal === "object" && "federal" in taxVal && "state" in taxVal) {
-          taxAmount = taxVal.federal + taxVal.state;
-        }
-
-        if (!taxBreakdown[income.type]) {
-          taxBreakdown[income.type] = { amount: 0, percentage: 0, grossIncome: 0 };
-        }
-
-        taxBreakdown[income.type].amount += taxAmount;
-        taxBreakdown[income.type].grossIncome += adjustedAmount;
-        taxBreakdown[income.type].percentage = (taxAmount / adjustedAmount) * 100;
-      }
-    });
-
-    return taxBreakdown;
-  };
-
-  const getFederalStateTax = (year: number) => {
-    let fed = 0, stateTax = 0;
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
       let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
@@ -88,27 +48,95 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       if (adjustedAmount > 0) {
         const split = calculateTotalTax(adjustedAmount, income.type, state, filingStatus, { split: true });
 
+        let federal = 0;
+        let stateTax = 0;
         if (typeof split === "number") {
-          fed += split;
-          // stateTax stays 0
+          federal = split;
         } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
-          fed += split.federal;
-          stateTax += split.state;
+          federal = split.federal;
+          stateTax = split.state;
         }
+
+        let ltcg = 0;
+        if (income.type === 'investment') {
+          ltcg = calculateLTCGTax(adjustedAmount);
+          federal = 0;
+        }
+
+        if (!taxBreakdown[income.type]) {
+          taxBreakdown[income.type] = { amount: 0, percentage: 0, grossIncome: 0, federal: 0, state: 0, ltcg: 0 };
+        }
+
+        const total = federal + stateTax + ltcg;
+        taxBreakdown[income.type].amount += total;
+        taxBreakdown[income.type].federal += federal;
+        taxBreakdown[income.type].state += stateTax;
+        taxBreakdown[income.type].ltcg += ltcg;
+        taxBreakdown[income.type].grossIncome += adjustedAmount;
+        taxBreakdown[income.type].percentage = (taxBreakdown[income.type].amount / taxBreakdown[income.type].grossIncome) * 100;
       }
     });
-    return { fed, state: stateTax };
+
+    return taxBreakdown;
+  };
+
+  const getFederalStateTax = (year: number) => {
+    let fed = 0, stateTax = 0, ltcg = 0;
+    incomes.forEach(income => {
+      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      
+      // Handle RSU vesting logic
+      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+        const traunchSize = (income.amount || 0) / income.vestingLength;
+        const vestingYear = income.vestingStartYear;
+        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+          adjustedAmount = traunchSize;
+        } else {
+          adjustedAmount = 0;
+        }
+      }
+
+      if (adjustedAmount > 0) {
+        const split = calculateTotalTax(adjustedAmount, income.type, state, filingStatus, { split: true });
+
+        let federal = 0;
+        let statePart = 0;
+        if (typeof split === "number") {
+          federal = split;
+        } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
+          federal = split.federal;
+          statePart = split.state;
+        }
+
+        if (income.type === 'investment') {
+          ltcg += calculateLTCGTax(adjustedAmount);
+          federal = 0;
+        }
+
+        fed += federal;
+        stateTax += statePart;
+      }
+    });
+    return { fed, state: stateTax, ltcg };
   };
 
   const year1TaxSplit = getFederalStateTax(1);
 
-  const sumFedState = Array.from({length: 10}, (_, i) => getFederalStateTax(i+1)).reduce(
-    (acc, val) => ({ fed: acc.fed + val.fed, state: acc.state + val.state }),
-    { fed: 0, state: 0 }
+  const sumFedState = Array.from({ length: 10 }, (_, i) => getFederalStateTax(i + 1)).reduce(
+    (acc, val) => ({
+      fed: acc.fed + val.fed,
+      state: acc.state + val.state,
+      ltcg: acc.ltcg + val.ltcg,
+    }),
+    { fed: 0, state: 0, ltcg: 0 }
   );
 
   const currentYearTaxes = getTaxByIncomeType(1);
-  const totalCurrentTax = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.amount, 0);
+  const totalCurrentTax = Object.values(currentYearTaxes).reduce(
+    (sum, tax) => sum + tax.federal + tax.state + tax.ltcg,
+    0
+  );
   const totalCurrentIncome = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.grossIncome, 0);
   const effectiveTaxRate = totalCurrentIncome > 0 ? (totalCurrentTax / totalCurrentIncome) * 100 : 0;
 
@@ -173,11 +201,12 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-800">
-              {formatCurrency(year1TaxSplit.fed + year1TaxSplit.state)}
+              {formatCurrency(year1TaxSplit.fed + year1TaxSplit.state + year1TaxSplit.ltcg)}
             </div>
             <div className="text-xs text-red-600 mt-1 flex flex-col gap-0.5">
               <span>Federal: {formatCurrency(year1TaxSplit.fed)}</span>
               <span>State: {formatCurrency(year1TaxSplit.state)}</span>
+              <span>LTCG: {formatCurrency(year1TaxSplit.ltcg)}</span>
             </div>
             <p className="text-xs text-red-600 mt-1">
               Current year calculation
@@ -239,26 +268,29 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         <CardHeader>
           <CardTitle className="text-lg">Tax Breakdown by Income Type</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(currentYearTaxes).map(([type, tax]) => (
-            <div key={type} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${getIncomeTypeColor(type)}`} />
-                  <span className="font-medium">{getIncomeTypeLabel(type)}</span>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">{formatCurrency(tax.amount)}</div>
-                  <div className="text-sm text-slate-500">{formatPercentage(tax.percentage)} effective rate</div>
-                </div>
-              </div>
-              <p className="text-xs text-slate-600 ml-6">{getTaxExplanation(type)}</p>
-              <Progress 
-                value={(tax.amount / totalCurrentTax) * 100} 
-                className="h-2"
-              />
-            </div>
-          ))}
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Federal</TableHead>
+                <TableHead className="text-right">State</TableHead>
+                <TableHead className="text-right">LTCG</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(currentYearTaxes).map(([type, tax]) => (
+                <TableRow key={type}>
+                  <TableCell className="capitalize font-medium">{getIncomeTypeLabel(type)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(tax.federal)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(tax.state)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(tax.ltcg)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(tax.federal + tax.state + tax.ltcg)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

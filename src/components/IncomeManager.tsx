@@ -534,21 +534,6 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({ incomes, setIncome
               </>
             )}
 
-            {/* Estimated Tax */}
-            <div>
-              <Label>Estimated Tax Rate</Label>
-              <div className="p-2 bg-slate-100 rounded text-sm font-medium">
-                {newIncome.amount && newIncome.type
-                  ? `${getEffectiveTaxRate(
-                      newIncome.frequency === 'monthly'
-                        ? newIncome.amount * 12
-                        : newIncome.amount,
-                      newIncome.type
-                    ).toFixed(1)}%`
-                  : '0.0%'}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Auto-calculated</p>
-            </div>
           </div>
 
           <Button onClick={addIncome} className="w-full bg-green-600 hover:bg-green-700">

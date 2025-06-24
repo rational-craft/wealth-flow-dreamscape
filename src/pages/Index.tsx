@@ -16,7 +16,7 @@ import { ExportButtons } from '@/components/ExportButtons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Calculator, PieChart, Home, Target, CreditCard, BarChart3, Settings, FileSpreadsheet } from 'lucide-react';
-import { calculateTotalTax, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS, FILING_STATUSES } from '@/utils/taxCalculator';
+import { calculateTotalTax, calculatePayrollTaxes, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS, FILING_STATUSES } from '@/utils/taxCalculator';
 import { DataTable } from '@/components/DataTable';
 import { scenarioService } from '@/services/ScenarioService';
 import { NLPChatBox } from "@/components/NLPChatBox";
@@ -292,7 +292,8 @@ const Index = () => {
       if (amount > 0) {
         const taxValue = calculateTotalTax(amount, type, state, filingStatus);
         const tax = typeof taxValue === "number" ? taxValue : (taxValue.federal + taxValue.state);
-        totalTaxes += tax;
+        const payroll = calculatePayrollTaxes(amount, type, filingStatus);
+        totalTaxes += tax + payroll.socialSecurity + payroll.medicare;
       }
     });
 
@@ -447,6 +448,7 @@ const Index = () => {
         const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
         grossIncome += adjustedAmount;
         const taxValue = calculateTotalTax(adjustedAmount, income.type, s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
+        const payroll = calculatePayrollTaxes(adjustedAmount, income.type, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
         let federal = 0, stateTax = 0;
         if (typeof taxValue === "number") {
           federal = taxValue;
@@ -456,12 +458,13 @@ const Index = () => {
         }
         fedTaxes += federal;
         stateTaxes += stateTax;
-        taxes += federal + stateTax;
+        taxes += federal + stateTax + payroll.socialSecurity + payroll.medicare;
       });
       const yearlyEquityPayouts = equityArr.filter((p:any) => p.year === year);
       yearlyEquityPayouts.forEach((payout:any) => {
         grossIncome += payout.amount;
         const taxValue = calculateTotalTax(payout.amount, 'equity', s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
+        const payroll = calculatePayrollTaxes(payout.amount, 'equity', s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
         let federal = 0, stateTax = 0;
         if (typeof taxValue === "number") {
           federal = taxValue;
@@ -471,7 +474,7 @@ const Index = () => {
         }
         fedTaxes += federal;
         stateTaxes += stateTax;
-        taxes += federal + stateTax;
+        taxes += federal + stateTax + payroll.socialSecurity + payroll.medicare;
       });
 
       const netIncome = grossIncome - taxes;
@@ -679,7 +682,7 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="taxes" className="flex items-center gap-2">
               <Calculator className="w-4 h-4" />
-              Taxes
+              Taxes & Fees
             </TabsTrigger>
             <TabsTrigger value="forecast" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />

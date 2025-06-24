@@ -167,11 +167,6 @@ export const calculateFederalTax = (income: number, incomeType: string, filingSt
     remainingIncome -= taxableInThisBracket;
   }
 
-  // Add self-employment tax for freelance income
-  if (incomeType === 'freelance') {
-    tax += income * 0.1413; // 14.13% self-employment tax (employer + employee portion)
-  }
-
   return tax;
 };
 
@@ -215,6 +210,52 @@ export const calculateTotalTax = (
     return { federal, state: stateTax };
   }
   return federal + stateTax;
+};
+
+// Payroll tax calculations
+export const SOCIAL_SECURITY_WAGE_BASE = 168600;
+
+const getAdditionalMedicareThreshold = (filingStatus: keyof typeof FEDERAL_TAX_BRACKETS) => {
+  switch (filingStatus) {
+    case 'marriedFilingJointly':
+      return 250000;
+    case 'marriedFilingSeparately':
+      return 125000;
+    default:
+      return 200000;
+  }
+};
+
+export const calculateSocialSecurityTax = (income: number, incomeType: string): number => {
+  if (incomeType === 'investment') return 0;
+  const rate = incomeType === 'freelance' ? 0.124 : 0.062;
+  return Math.min(income, SOCIAL_SECURITY_WAGE_BASE) * rate;
+};
+
+export const calculateMedicareTax = (
+  income: number,
+  incomeType: string,
+  filingStatus: keyof typeof FEDERAL_TAX_BRACKETS
+): number => {
+  if (incomeType === 'investment') return 0;
+  const baseRate = incomeType === 'freelance' ? 0.029 : 0.0145;
+  let tax = income * baseRate;
+  const threshold = getAdditionalMedicareThreshold(filingStatus);
+  if (income > threshold) {
+    tax += (income - threshold) * 0.009;
+  }
+  return tax;
+};
+
+export const calculatePayrollTaxes = (
+  income: number,
+  incomeType: string,
+  filingStatus: keyof typeof FEDERAL_TAX_BRACKETS
+) => {
+  return {
+    socialSecurity: calculateSocialSecurityTax(income, incomeType),
+    medicare: calculateMedicareTax(income, incomeType, filingStatus),
+  };
 };
 
 // Calculate long-term capital gains tax (simplified 15% federal rate)

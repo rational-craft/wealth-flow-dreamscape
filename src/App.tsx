@@ -4,12 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "@/layouts/AppShell";
-import DashboardPage from "./pages/Dashboard";
-import Expenses from "./pages/Expenses";
-import Income from "./pages/Income";
-import Settings from "./pages/Settings";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import DashboardPage from "@/pages/Dashboard";
+import Expenses from "@/pages/Expenses";
+import Income from "@/pages/Income";
+import Settings from "@/pages/Settings";
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 

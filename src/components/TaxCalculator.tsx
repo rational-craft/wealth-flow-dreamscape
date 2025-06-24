@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { IncomeSource, WealthProjection } from '@/pages/Index';
 import { Calculator, TrendingDown, Info } from 'lucide-react';
-import { calculateTotalTax, calculateLTCGTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES } from '@/utils/taxCalculator';
+import { calculateTotalTax, calculateLTCGTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES, STATE_PROGRESSIVE_BRACKETS, getStateBrackets, getStateLTCGInfo } from '@/utils/taxCalculator';
 
 interface TaxCalculatorProps {
   incomes: IncomeSource[];
@@ -150,6 +150,9 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
   );
   const totalCurrentIncome = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.grossIncome, 0);
   const effectiveTaxRate = totalCurrentIncome > 0 ? (totalCurrentTax / totalCurrentIncome) * 100 : 0;
+
+  const stateBracketInfo = getStateBrackets(state);
+  const stateLTCGInfo = getStateLTCGInfo(state);
 
   const getTaxCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
@@ -309,6 +312,37 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
                 <span className="font-semibold text-slate-800">{bracket.rate}%</span>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* State Tax Brackets Reference */}
+      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-lg">2024 {state} Tax Brackets</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stateBracketInfo.brackets ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {stateBracketInfo.brackets.map((bracket, index) => (
+                <div key={index} className="flex justify-between items-center p-3 bg-white rounded border">
+                  <span className="text-sm">
+                    {formatCurrency(bracket.min)} - {bracket.max === Infinity ? '∞' : formatCurrency(bracket.max)}
+                  </span>
+                  <span className="font-semibold text-slate-800">{bracket.rate}%</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm">Flat rate: {stateBracketInfo.rate}%</p>
+          )}
+          <div className="mt-4">
+            <h4 className="text-sm font-medium">Long-Term Capital Gains</h4>
+            {stateLTCGInfo.brackets ? (
+              <p className="text-sm text-slate-600">{stateLTCGInfo.note || 'Taxed as ordinary income'}</p>
+            ) : (
+              <p className="text-sm text-slate-600">{stateLTCGInfo.note || `Flat rate ${stateLTCGInfo.rate}%`}</p>
+            )}
           </div>
         </CardContent>
       </Card>

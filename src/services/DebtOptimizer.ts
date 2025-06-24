@@ -5,6 +5,8 @@ export interface Debt {
   balance: number;
   apr: number;
   minimumPayment: number;
+  /** Loan term in years, optional for simple debts */
+  loanTermYears?: number;
 }
 
 export interface DebtPayoffPlan {

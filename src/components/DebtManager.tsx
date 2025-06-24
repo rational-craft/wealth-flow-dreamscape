@@ -9,8 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Debt, DebtOptimizer, PayoffStrategy } from '@/services/DebtOptimizer';
 import { Plus, Trash2 } from 'lucide-react';
 
-export const DebtManager: React.FC = () => {
-  const [debts, setDebts] = useState<Debt[]>([]);
+interface DebtManagerProps {
+  debts: Debt[];
+  setDebts: (debts: Debt[]) => void;
+}
+
+export const DebtManager: React.FC<DebtManagerProps> = ({ debts, setDebts }) => {
   const [extraPayment, setExtraPayment] = useState(0);
   const [strategy, setStrategy] = useState<PayoffStrategy>('avalanche');
   const [showComparison, setShowComparison] = useState(false);
@@ -21,13 +25,30 @@ export const DebtManager: React.FC = () => {
       name: 'New Debt',
       balance: 0,
       apr: 0,
-      minimumPayment: 0
+      minimumPayment: 0,
+      loanTermYears: 5
     };
     setDebts([...debts, newDebt]);
   };
 
   const updateDebt = (id: string, updates: Partial<Debt>) => {
-    setDebts(debts.map(debt => debt.id === id ? { ...debt, ...updates } : debt));
+    setDebts(
+      debts.map(debt => {
+        if (debt.id !== id) return debt;
+        const updated = { ...debt, ...updates };
+        if (
+          updates.balance !== undefined ||
+          updates.apr !== undefined ||
+          updates.loanTermYears !== undefined
+        ) {
+          const r = updated.apr / 100 / 12;
+          const n = (updated.loanTermYears || 0) * 12;
+          updated.minimumPayment =
+            n > 0 ? (updated.balance * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : 0;
+        }
+        return updated;
+      })
+    );
   };
 
   const removeDebt = (id: string) => {
@@ -65,6 +86,7 @@ export const DebtManager: React.FC = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Balance</TableHead>
                     <TableHead>APR (%)</TableHead>
+                    <TableHead>Term (Years)</TableHead>
                     <TableHead>Min Payment</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -85,21 +107,28 @@ export const DebtManager: React.FC = () => {
                           onChange={(e) => updateDebt(debt.id, { balance: Number(e.target.value) })}
                         />
                       </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={debt.apr}
-                          onChange={(e) => updateDebt(debt.id, { apr: Number(e.target.value) })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={debt.minimumPayment}
-                          onChange={(e) => updateDebt(debt.id, { minimumPayment: Number(e.target.value) })}
-                        />
-                      </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={debt.apr}
+                        onChange={(e) => updateDebt(debt.id, { apr: Number(e.target.value) })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={debt.loanTermYears}
+                        onChange={(e) => updateDebt(debt.id, { loanTermYears: Number(e.target.value) })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={Math.round(debt.minimumPayment)}
+                        disabled
+                      />
+                    </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"

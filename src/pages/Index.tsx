@@ -22,6 +22,7 @@ import { scenarioService } from '@/services/ScenarioService';
 import { NLPChatBox } from "@/components/NLPChatBox";
 import { ConditionalLogicChat } from "@/components/ConditionalLogicChat";
 import SummaryDashboard from '@/components/SummaryDashboard';
+import { Debt } from '@/services/DebtOptimizer';
 
 export interface IncomeSource {
   id: string;
@@ -126,6 +127,7 @@ const Index = () => {
 
   const [equityPayouts, setEquityPayouts] = useState<EquityPayout[]>([]);
   const [properties, setProperties] = useState<RealEstateProperty[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [initialWealth, setInitialWealth] = useState(50000);
   const [investmentReturn, setInvestmentReturn] = useState(7);
   const [projectionYears, setProjectionYears] = useState(10);
@@ -183,6 +185,17 @@ const Index = () => {
     return realEstateExpenses;
   };
 
+  const generateDebtExpenses = (): ExpenseCategory[] => {
+    return debts.map(debt => ({
+      id: `debt-payment-${debt.id}`,
+      name: `Loan Payment - ${debt.name}`,
+      amount: debt.minimumPayment,
+      frequency: 'monthly',
+      growthRate: 0,
+      isFixed: true
+    }));
+  };
+
   // Combine user expenses with generated real estate expenses
   const getAllExpenses = (): ExpenseCategory[] => {
     const userExpenses = expenses.filter(expense => 
@@ -191,7 +204,8 @@ const Index = () => {
       !expense.id.startsWith('maintenance-')
     );
     const realEstateExpenses = generateRealEstateExpenses();
-    return [...userExpenses, ...realEstateExpenses];
+    const debtExpenses = generateDebtExpenses();
+    return [...userExpenses, ...realEstateExpenses, ...debtExpenses];
   };
 
   // SCENARIO DATA LOADING/SAVING
@@ -202,6 +216,7 @@ const Index = () => {
     setExpenses(scenarioData.expenses ?? []);
     setEquityPayouts(scenarioData.equityPayouts ?? []);
     setProperties(scenarioData.properties ?? []);
+    setDebts(scenarioData.debts ?? []);
     setInitialWealth(scenarioData.initialWealth ?? 50000);
     setInvestmentReturn(scenarioData.investmentReturn ?? 7);
     setProjectionYears(scenarioData.projectionYears ?? 10);
@@ -215,6 +230,7 @@ const Index = () => {
       expenses,
       equityPayouts,
       properties,
+      debts,
       initialWealth,
       investmentReturn,
       projectionYears,
@@ -231,6 +247,7 @@ const Index = () => {
     projectionYears,
     state,
     filingStatus,
+    debts,
     currentScenarioId,
   ]);
 
@@ -721,7 +738,7 @@ const Index = () => {
 
           <TabsContent value="debt" className="space-y-6">
             <Card className="p-6">
-              <DebtManager />
+              <DebtManager debts={debts} setDebts={setDebts} />
             </Card>
           </TabsContent>
 

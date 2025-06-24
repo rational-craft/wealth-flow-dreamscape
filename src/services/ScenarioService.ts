@@ -8,6 +8,7 @@ export interface Scenario {
     expenses: any[];
     equityPayouts: any[];
     properties: any[];
+    debts: any[];
     initialWealth: number;
     investmentReturn: number;
     projectionYears: number;
@@ -35,6 +36,7 @@ export class ScenarioService {
         expenses: [],
         equityPayouts: [],
         properties: [],
+        debts: [],
         initialWealth: 50000,
         investmentReturn: 7,
         projectionYears: 10,
@@ -50,7 +52,8 @@ export class ScenarioService {
       createdAt: new Date(),
       data: {
         ...baseScenario.data,
-        investmentReturn: 10
+        investmentReturn: 10,
+        debts: []
       }
     };
 
@@ -61,7 +64,8 @@ export class ScenarioService {
       createdAt: new Date(),
       data: {
         ...baseScenario.data,
-        investmentReturn: 4
+        investmentReturn: 4,
+        debts: []
       }
     };
 

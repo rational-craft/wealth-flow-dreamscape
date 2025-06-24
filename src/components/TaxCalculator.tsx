@@ -27,8 +27,13 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     return `${percentage.toFixed(1)}%`;
   };
 
-  const getTaxByIncomeType = (year: number) => {
-    const taxBreakdown: Record<string, { amount: number; percentage: number; grossIncome: number; federal: number; state: number; ltcg: number }> = {};
+  // Aggregate income by tax treatment type
+  const getAggregatedIncomeByTaxType = (year: number) => {
+    const aggregatedIncome: Record<string, { amount: number; taxType: string }> = {
+      ordinaryIncome: { amount: 0, taxType: 'salary' },
+      investmentIncome: { amount: 0, taxType: 'investment' },
+      freelanceIncome: { amount: 0, taxType: 'freelance' }
+    };
 
     incomes.forEach(income => {
       const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
@@ -46,34 +51,68 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       }
 
       if (adjustedAmount > 0) {
-        const split = calculateTotalTax(adjustedAmount, income.type, state, filingStatus, { split: true });
-
-        let federal = 0;
-        let stateTax = 0;
-        if (typeof split === "number") {
-          federal = split;
-        } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
-          federal = split.federal;
-          stateTax = split.state;
-        }
-
-        let ltcg = 0;
+        // Group income types by tax treatment
         if (income.type === 'investment') {
-          ltcg = calculateLTCGTax(adjustedAmount);
-          federal = 0;
+          aggregatedIncome.investmentIncome.amount += adjustedAmount;
+        } else if (income.type === 'freelance') {
+          aggregatedIncome.freelanceIncome.amount += adjustedAmount;
+        } else {
+          // salary, equity, rsu, bonus, other all treated as ordinary income
+          aggregatedIncome.ordinaryIncome.amount += adjustedAmount;
         }
+      }
+    });
 
-        if (!taxBreakdown[income.type]) {
-          taxBreakdown[income.type] = { amount: 0, percentage: 0, grossIncome: 0, federal: 0, state: 0, ltcg: 0 };
+    return aggregatedIncome;
+  };
+
+  const getTaxBreakdownByType = (year: number) => {
+    const aggregatedIncome = getAggregatedIncomeByTaxType(year);
+    const taxBreakdown: Record<string, { 
+      grossIncome: number; 
+      federal: number; 
+      state: number; 
+      ltcg: number; 
+      total: number;
+      effectiveRate: number;
+    }> = {};
+
+    Object.entries(aggregatedIncome).forEach(([category, { amount, taxType }]) => {
+      if (amount > 0) {
+        if (category === 'investmentIncome') {
+          // Long-term capital gains treatment
+          const ltcg = calculateLTCGTax(amount);
+          taxBreakdown[category] = {
+            grossIncome: amount,
+            federal: 0,
+            state: 0,
+            ltcg: ltcg,
+            total: ltcg,
+            effectiveRate: (ltcg / amount) * 100
+          };
+        } else {
+          // Ordinary income treatment (progressive tax)
+          const split = calculateTotalTax(amount, taxType, state, filingStatus, { split: true });
+          let federal = 0;
+          let stateTax = 0;
+          
+          if (typeof split === "number") {
+            federal = split;
+          } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
+            federal = split.federal;
+            stateTax = split.state;
+          }
+
+          const total = federal + stateTax;
+          taxBreakdown[category] = {
+            grossIncome: amount,
+            federal: federal,
+            state: stateTax,
+            ltcg: 0,
+            total: total,
+            effectiveRate: (total / amount) * 100
+          };
         }
-
-        const total = federal + stateTax + ltcg;
-        taxBreakdown[income.type].amount += total;
-        taxBreakdown[income.type].federal += federal;
-        taxBreakdown[income.type].state += stateTax;
-        taxBreakdown[income.type].ltcg += ltcg;
-        taxBreakdown[income.type].grossIncome += adjustedAmount;
-        taxBreakdown[income.type].percentage = (taxBreakdown[income.type].amount / taxBreakdown[income.type].grossIncome) * 100;
       }
     });
 
@@ -81,43 +120,15 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
   };
 
   const getFederalStateTax = (year: number) => {
+    const taxBreakdown = getTaxBreakdownByType(year);
     let fed = 0, stateTax = 0, ltcg = 0;
-    incomes.forEach(income => {
-      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      
-      // Handle RSU vesting logic
-      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
-        const traunchSize = (income.amount || 0) / income.vestingLength;
-        const vestingYear = income.vestingStartYear;
-        if (year >= vestingYear && year < vestingYear + income.vestingLength) {
-          adjustedAmount = traunchSize;
-        } else {
-          adjustedAmount = 0;
-        }
-      }
 
-      if (adjustedAmount > 0) {
-        const split = calculateTotalTax(adjustedAmount, income.type, state, filingStatus, { split: true });
-
-        let federal = 0;
-        let statePart = 0;
-        if (typeof split === "number") {
-          federal = split;
-        } else if (split && typeof split === "object" && "federal" in split && "state" in split) {
-          federal = split.federal;
-          statePart = split.state;
-        }
-
-        if (income.type === 'investment') {
-          ltcg += calculateLTCGTax(adjustedAmount);
-          federal = 0;
-        }
-
-        fed += federal;
-        stateTax += statePart;
-      }
+    Object.values(taxBreakdown).forEach(breakdown => {
+      fed += breakdown.federal;
+      stateTax += breakdown.state;
+      ltcg += breakdown.ltcg;
     });
+
     return { fed, state: stateTax, ltcg };
   };
 
@@ -132,51 +143,30 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     { fed: 0, state: 0, ltcg: 0 }
   );
 
-  const currentYearTaxes = getTaxByIncomeType(1);
+  const currentYearTaxes = getTaxBreakdownByType(1);
   const totalCurrentTax = Object.values(currentYearTaxes).reduce(
-    (sum, tax) => sum + tax.federal + tax.state + tax.ltcg,
+    (sum, tax) => sum + tax.total,
     0
   );
   const totalCurrentIncome = Object.values(currentYearTaxes).reduce((sum, tax) => sum + tax.grossIncome, 0);
   const effectiveTaxRate = totalCurrentIncome > 0 ? (totalCurrentTax / totalCurrentIncome) * 100 : 0;
 
-  const getIncomeTypeLabel = (type: string) => {
+  const getTaxCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      salary: 'Salary Income',
-      freelance: 'Freelance Income',
-      investment: 'Investment Income',
-      equity: 'Equity Compensation',
-      rsu: 'RSU Income',
-      bonus: 'Bonus Income',
-      other: 'Other Income'
+      ordinaryIncome: 'Ordinary Income',
+      investmentIncome: 'Long-Term Capital Gains',
+      freelanceIncome: 'Self-Employment Income'
     };
-    return labels[type] || type;
+    return labels[category] || category;
   };
 
-  const getIncomeTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      salary: 'bg-blue-500',
-      freelance: 'bg-green-500',
-      investment: 'bg-purple-500',
-      equity: 'bg-orange-500',
-      rsu: 'bg-pink-500',
-      bonus: 'bg-yellow-500',
-      other: 'bg-gray-500'
-    };
-    return colors[type] || 'bg-gray-500';
-  };
-
-  const getTaxExplanation = (type: string) => {
+  const getTaxExplanation = (category: string) => {
     const explanations: Record<string, string> = {
-      salary: 'Progressive federal tax brackets + state tax',
-      freelance: 'Progressive federal tax + 14.13% self-employment tax + state tax',
-      investment: '15% long-term capital gains rate (for most earners)',
-      equity: 'Progressive tax brackets (treated as ordinary income)',
-      rsu: 'Progressive tax brackets (treated as ordinary income)',
-      bonus: 'Progressive tax brackets (treated as ordinary income)',
-      other: 'Progressive federal tax brackets + state tax'
+      ordinaryIncome: 'Progressive federal tax brackets + state tax (includes salary, equity, RSU, bonus)',
+      investmentIncome: '15% long-term capital gains rate (for most earners)',
+      freelanceIncome: 'Progressive federal tax + 14.13% self-employment tax + state tax'
     };
-    return explanations[type] || 'Standard progressive taxation';
+    return explanations[category] || 'Standard progressive taxation';
   };
 
   return (
@@ -263,30 +253,40 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
         </Card>
       </div>
 
-      {/* Tax Breakdown by Income Type */}
+      {/* Tax Breakdown by Income Category */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Tax Breakdown by Income Type</CardTitle>
+          <CardTitle className="text-lg">Tax Breakdown by Income Category</CardTitle>
+          <p className="text-sm text-slate-600">Taxes calculated on aggregated income subtotals by tax treatment</p>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Federal</TableHead>
-                <TableHead className="text-right">State</TableHead>
-                <TableHead className="text-right">LTCG</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Income Category</TableHead>
+                <TableHead className="text-right">Gross Income</TableHead>
+                <TableHead className="text-right">Federal Tax</TableHead>
+                <TableHead className="text-right">State Tax</TableHead>
+                <TableHead className="text-right">LTCG Tax</TableHead>
+                <TableHead className="text-right">Total Tax</TableHead>
+                <TableHead className="text-right">Effective Rate</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(currentYearTaxes).map(([type, tax]) => (
-                <TableRow key={type}>
-                  <TableCell className="capitalize font-medium">{getIncomeTypeLabel(type)}</TableCell>
+              {Object.entries(currentYearTaxes).map(([category, tax]) => (
+                <TableRow key={category}>
+                  <TableCell className="font-medium">
+                    <div>
+                      <div>{getTaxCategoryLabel(category)}</div>
+                      <div className="text-xs text-slate-500">{getTaxExplanation(category)}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">{formatCurrency(tax.grossIncome)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.federal)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.state)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.ltcg)}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(tax.federal + tax.state + tax.ltcg)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(tax.total)}</TableCell>
+                  <TableCell className="text-right">{formatPercentage(tax.effectiveRate)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

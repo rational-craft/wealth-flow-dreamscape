@@ -125,6 +125,22 @@ export const STATE_PROGRESSIVE_BRACKETS: Record<string, TaxBracket[]> = {
   // add others as needed...
 };
 
+// Basic long term capital gains treatment by state
+// If a state taxes capital gains the same as ordinary income,
+// we simply reference the progressive brackets or flat rate.
+export const STATE_LTCG_RATES: Record<string, { rate?: number; brackets?: TaxBracket[]; note?: string }> = {
+  California: { brackets: STATE_PROGRESSIVE_BRACKETS["California"], note: "Taxed as ordinary income" },
+  "NewYork": { brackets: STATE_PROGRESSIVE_BRACKETS["NewYork"], note: "Taxed as ordinary income" },
+  "New York": { brackets: STATE_PROGRESSIVE_BRACKETS["NewYork"], note: "Taxed as ordinary income" },
+  Washington: { rate: 7, note: "7% on gains above $250k" },
+  Texas: { rate: 0, note: "No state income tax" },
+  Florida: { rate: 0, note: "No state income tax" }
+  // other states default to ordinary income treatment
+};
+
+// Normalize state key to allow lookup with or without spaces
+const normState = (state: string) => state.replace(/\s+/g, "");
+
 export const FILING_STATUSES = {
   single: 'Single',
   marriedFilingJointly: 'Married Filing Jointly',
@@ -164,11 +180,14 @@ export const calculateStateTax = (
   incomeType: string,
   state: keyof typeof STATE_TAX_RATES,
 ): number => {
+  // Normalize the state key to handle spaces
+  const key = (STATE_PROGRESSIVE_BRACKETS[state] ? state : normState(state)) as keyof typeof STATE_PROGRESSIVE_BRACKETS;
+
   // Use progressive for supported states, flat otherwise.
-  if (STATE_PROGRESSIVE_BRACKETS[state]) {
+  if (STATE_PROGRESSIVE_BRACKETS[key]) {
     let tax = 0;
     let remaining = income;
-    for (const bracket of STATE_PROGRESSIVE_BRACKETS[state]) {
+    for (const bracket of STATE_PROGRESSIVE_BRACKETS[key]) {
       if (remaining <= 0) break;
       const bracketSize = Math.min(remaining, bracket.max - bracket.min);
       tax += bracketSize * (bracket.rate / 100);
@@ -220,4 +239,21 @@ export const getEffectiveTaxRate = (
     totalTaxNumber = totalTax.federal + totalTax.state;
   }
   return (totalTaxNumber / income) * 100;
+};
+
+export const getStateBrackets = (
+  state: keyof typeof STATE_TAX_RATES
+): { brackets?: TaxBracket[]; rate?: number } => {
+  const key = (STATE_PROGRESSIVE_BRACKETS[state] ? state : normState(state)) as keyof typeof STATE_PROGRESSIVE_BRACKETS;
+  if (STATE_PROGRESSIVE_BRACKETS[key]) {
+    return { brackets: STATE_PROGRESSIVE_BRACKETS[key] };
+  }
+  return { rate: STATE_TAX_RATES[state] || 0 };
+};
+
+export const getStateLTCGInfo = (
+  state: keyof typeof STATE_TAX_RATES
+): { brackets?: TaxBracket[]; rate?: number; note?: string } => {
+  const key = STATE_LTCG_RATES[state] ? state : normState(state);
+  return STATE_LTCG_RATES[key] || { rate: STATE_TAX_RATES[state] || 0, note: 'Taxed as ordinary income' };
 };

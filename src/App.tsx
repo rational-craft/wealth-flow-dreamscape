@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import DashboardPage from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import Layout from "@/layouts/Layout";
+import AppShell from "@/layouts/AppShell";
 
 const queryClient = new QueryClient();
 
@@ -17,7 +17,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<AppShell />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/" element={<Index />} />
             <Route path="/income" element={<Index />} />

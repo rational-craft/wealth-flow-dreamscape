@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { IncomeSource, WealthProjection } from '@/pages/Index';
 import { Calculator, TrendingDown, Info } from 'lucide-react';
-import { calculateTotalTax, calculateLTCGTax, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES, STATE_PROGRESSIVE_BRACKETS, getStateBrackets, getStateLTCGInfo } from '@/utils/taxCalculator';
+import { calculateTotalTax, calculateLTCGTax, calculatePayrollTaxes, FEDERAL_TAX_BRACKETS, FILING_STATUSES, STATE_TAX_RATES, STATE_PROGRESSIVE_BRACKETS, getStateBrackets, getStateLTCGInfo } from '@/utils/taxCalculator';
 
 interface TaxCalculatorProps {
   incomes: IncomeSource[];
@@ -68,11 +68,13 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
   const getTaxBreakdownByType = (year: number) => {
     const aggregatedIncome = getAggregatedIncomeByTaxType(year);
-    const taxBreakdown: Record<string, { 
-      grossIncome: number; 
-      federal: number; 
-      state: number; 
-      ltcg: number; 
+    const taxBreakdown: Record<string, {
+      grossIncome: number;
+      federal: number;
+      state: number;
+      socialSecurity: number;
+      medicare: number;
+      ltcg: number;
       total: number;
       effectiveRate: number;
     }> = {};
@@ -86,6 +88,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
             grossIncome: amount,
             federal: 0,
             state: 0,
+            socialSecurity: 0,
+            medicare: 0,
             ltcg: ltcg,
             total: ltcg,
             effectiveRate: (ltcg / amount) * 100
@@ -103,11 +107,14 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
             stateTax = split.state;
           }
 
-          const total = federal + stateTax;
+          const payroll = calculatePayrollTaxes(amount, taxType, filingStatus);
+          const total = federal + stateTax + payroll.socialSecurity + payroll.medicare;
           taxBreakdown[category] = {
             grossIncome: amount,
             federal: federal,
             state: stateTax,
+            socialSecurity: payroll.socialSecurity,
+            medicare: payroll.medicare,
             ltcg: 0,
             total: total,
             effectiveRate: (total / amount) * 100
@@ -121,15 +128,17 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
 
   const getFederalStateTax = (year: number) => {
     const taxBreakdown = getTaxBreakdownByType(year);
-    let fed = 0, stateTax = 0, ltcg = 0;
+    let fed = 0, stateTax = 0, socialSecurity = 0, medicare = 0, ltcg = 0;
 
     Object.values(taxBreakdown).forEach(breakdown => {
       fed += breakdown.federal;
       stateTax += breakdown.state;
+      socialSecurity += breakdown.socialSecurity;
+      medicare += breakdown.medicare;
       ltcg += breakdown.ltcg;
     });
 
-    return { fed, state: stateTax, ltcg };
+    return { fed, state: stateTax, socialSecurity, medicare, ltcg };
   };
 
   const year1TaxSplit = getFederalStateTax(1);
@@ -138,9 +147,11 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
     (acc, val) => ({
       fed: acc.fed + val.fed,
       state: acc.state + val.state,
+      socialSecurity: acc.socialSecurity + val.socialSecurity,
+      medicare: acc.medicare + val.medicare,
       ltcg: acc.ltcg + val.ltcg,
     }),
-    { fed: 0, state: 0, ltcg: 0 }
+    { fed: 0, state: 0, socialSecurity: 0, medicare: 0, ltcg: 0 }
   );
 
   const currentYearTaxes = getTaxBreakdownByType(1);
@@ -184,7 +195,7 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
       </div>
 
       {/* Tax Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-red-700 flex items-center gap-2">
@@ -194,11 +205,13 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-800">
-              {formatCurrency(year1TaxSplit.fed + year1TaxSplit.state + year1TaxSplit.ltcg)}
+              {formatCurrency(year1TaxSplit.fed + year1TaxSplit.state + year1TaxSplit.socialSecurity + year1TaxSplit.medicare + year1TaxSplit.ltcg)}
             </div>
             <div className="text-xs text-red-600 mt-1 flex flex-col gap-0.5">
               <span>Federal: {formatCurrency(year1TaxSplit.fed)}</span>
               <span>State: {formatCurrency(year1TaxSplit.state)}</span>
+              <span>Social Security: {formatCurrency(year1TaxSplit.socialSecurity)}</span>
+              <span>Medicare: {formatCurrency(year1TaxSplit.medicare)}</span>
               <span>LTCG: {formatCurrency(year1TaxSplit.ltcg)}</span>
             </div>
             <p className="text-xs text-red-600 mt-1">
@@ -254,6 +267,38 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
             </p>
           </CardContent>
         </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-green-700">
+              10-Year Social Security
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-800">
+              {formatCurrency(sumFedState.socialSecurity)}
+            </div>
+            <p className="text-xs text-green-600 mt-1">
+              Total projected Social Security fees
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-purple-700">
+              10-Year Medicare
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-800">
+              {formatCurrency(sumFedState.medicare)}
+            </div>
+            <p className="text-xs text-purple-600 mt-1">
+              Total projected Medicare fees
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tax Breakdown by Income Category */}
@@ -270,6 +315,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
                 <TableHead className="text-right">Gross Income</TableHead>
                 <TableHead className="text-right">Federal Tax</TableHead>
                 <TableHead className="text-right">State Tax</TableHead>
+                <TableHead className="text-right">Social Security</TableHead>
+                <TableHead className="text-right">Medicare</TableHead>
                 <TableHead className="text-right">LTCG Tax</TableHead>
                 <TableHead className="text-right">Total Tax</TableHead>
                 <TableHead className="text-right">Effective Rate</TableHead>
@@ -287,6 +334,8 @@ export const TaxCalculator: React.FC<TaxCalculatorProps> = ({ incomes, projectio
                   <TableCell className="text-right font-medium">{formatCurrency(tax.grossIncome)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.federal)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.state)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(tax.socialSecurity)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(tax.medicare)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(tax.ltcg)}</TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(tax.total)}</TableCell>
                   <TableCell className="text-right">{formatPercentage(tax.effectiveRate)}</TableCell>

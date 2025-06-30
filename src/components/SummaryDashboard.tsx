@@ -101,6 +101,12 @@ export const SummaryDashboard: React.FC<Props> = ({
   const loanBalanceByYear = projections.map((p) => p.loanBalance);
   const realEstateEquityByYear = projections.map((p) => p.realEateEquity);
 
+  // Only use the final year's values when showing summaries
+  const lastProjection = projections.at(-1);
+  const latestRealEstateValue = lastProjection?.realEstateValue ?? 0;
+  const latestLoanBalance = lastProjection?.loanBalance ?? 0;
+  const latestRealEstateEquity = lastProjection?.realEateEquity ?? 0;
+
   // NET WORTH
   const netWorthByYear = projections.map((p) => p.cumulativeWealth);
 
@@ -290,7 +296,7 @@ export const SummaryDashboard: React.FC<Props> = ({
           <div className="flex justify-between w-full pr-6">
             <span className="font-medium text-lg">Real Estate & Debt</span>
             <span className="font-semibold text-purple-700">
-              Net Property: {formatCurrency(realEstateValueByYear.reduce((a, b) => a + b, 0) - loanBalanceByYear.reduce((a, b) => a + b, 0))}
+              Net Property: {formatCurrency(latestRealEstateValue - latestLoanBalance)}
             </span>
           </div>
         </AccordionTrigger>
@@ -312,21 +318,21 @@ export const SummaryDashboard: React.FC<Props> = ({
                   {realEstateValueByYear.map((v, i) => (
                     <td key={i} className="p-2">{formatCurrency(v)}</td>
                   ))}
-                  <td className="p-2 font-semibold">{formatCurrency(realEstateValueByYear.reduce((a, b) => a + b, 0))}</td>
+                  <td className="p-2 font-semibold">{formatCurrency(latestRealEstateValue)}</td>
                 </tr>
                 <tr>
                   <td className="p-2 text-red-700">Loan Balance</td>
                   {loanBalanceByYear.map((l, i) => (
                     <td key={i} className="p-2">{formatCurrency(l)}</td>
                   ))}
-                  <td className="p-2 font-semibold">{formatCurrency(loanBalanceByYear.reduce((a, b) => a + b, 0))}</td>
+                  <td className="p-2 font-semibold">{formatCurrency(latestLoanBalance)}</td>
                 </tr>
                 <tr>
                   <td className="p-2 text-green-700">Real Estate Equity</td>
                   {realEstateEquityByYear.map((e, i) => (
                     <td key={i} className="p-2">{formatCurrency(e)}</td>
                   ))}
-                  <td className="p-2 font-semibold">{formatCurrency(realEstateEquityByYear.reduce((a, b) => a + b, 0))}</td>
+                  <td className="p-2 font-semibold">{formatCurrency(latestRealEstateEquity)}</td>
                 </tr>
               </tbody>
             </table>

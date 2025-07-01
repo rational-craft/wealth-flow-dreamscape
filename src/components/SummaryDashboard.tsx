@@ -102,7 +102,8 @@ export const SummaryDashboard: React.FC<Props> = ({
   const realEstateEquityByYear = projections.map((p) => p.realEateEquity);
 
   // Only use the final year's values when showing summaries
-  const lastProjection = projections.at(-1);
+  // Grab the final year's projection to display the latest property values
+  const lastProjection = projections[projections.length - 1];
   const latestRealEstateValue = lastProjection?.realEstateValue ?? 0;
   const latestLoanBalance = lastProjection?.loanBalance ?? 0;
   const latestRealEstateEquity = lastProjection?.realEateEquity ?? 0;

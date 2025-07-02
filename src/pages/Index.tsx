@@ -1,35 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { WealthDashboard } from '@/components/WealthDashboard';
-import { IncomeManager } from '@/components/IncomeManager';
-import { ExpenseManager } from '@/components/ExpenseManager';
-import { ForecastChart } from '@/components/ForecastChart';
-import { TaxCalculator } from '@/components/TaxCalculator';
-import { EquityManager } from '@/components/EquityManager';
-import { RealEstateManager } from '@/components/RealEstateManager';
-import { ScenarioManager } from '@/components/ScenarioManager';
-import { ScenarioComparison } from '@/components/ScenarioComparison';
-import { MonteCarloSimulation } from '@/components/MonteCarloSimulation';
-import { DebtManager } from '@/components/DebtManager';
-import { GoalManager } from '@/components/GoalManager';
-import { RetirementSettings } from '@/components/RetirementSettings';
-import { ExportButtons } from '@/components/ExportButtons';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Calculator, PieChart, Home, Target, CreditCard, BarChart3, Settings, FileSpreadsheet } from 'lucide-react';
-import { calculateTotalTax, calculatePayrollTaxes, getEffectiveTaxRate, STATE_TAX_RATES, FEDERAL_TAX_BRACKETS, FILING_STATUSES } from '@/utils/taxCalculator';
-import { DataTable } from '@/components/DataTable';
-import { scenarioService } from '@/services/ScenarioService';
+import React, { useState, useEffect } from "react";
+import { WealthDashboard } from "@/components/WealthDashboard";
+import { IncomeManager } from "@/components/IncomeManager";
+import { ExpenseManager } from "@/components/ExpenseManager";
+import { ForecastChart } from "@/components/ForecastChart";
+import { TaxCalculator } from "@/components/TaxCalculator";
+import { EquityManager } from "@/components/EquityManager";
+import { RealEstateManager } from "@/components/RealEstateManager";
+import { ScenarioManager } from "@/components/ScenarioManager";
+import { ScenarioComparison } from "@/components/ScenarioComparison";
+import { MonteCarloSimulation } from "@/components/MonteCarloSimulation";
+import { DebtManager } from "@/components/DebtManager";
+import { GoalManager } from "@/components/GoalManager";
+import { RetirementSettings } from "@/components/RetirementSettings";
+import { ExportButtons } from "@/components/ExportButtons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import {
+  TrendingUp,
+  DollarSign,
+  Calculator,
+  PieChart,
+  Home,
+  Target,
+  CreditCard,
+  BarChart3,
+  Settings,
+  FileSpreadsheet,
+} from "lucide-react";
+import {
+  calculateTotalTax,
+  calculatePayrollTaxes,
+  getEffectiveTaxRate,
+  STATE_TAX_RATES,
+  FEDERAL_TAX_BRACKETS,
+  FILING_STATUSES,
+} from "@/utils/taxCalculator";
+import { scenarioService } from "@/services/ScenarioService";
+import DataTab from "@/pages/DataTab";
 import { NLPChatBox } from "@/components/NLPChatBox";
 import { ConditionalLogicChat } from "@/components/ConditionalLogicChat";
-import SummaryDashboard from '@/components/SummaryDashboard';
-import { Debt } from '@/services/DebtOptimizer';
+import SummaryDashboard from "@/components/SummaryDashboard";
+import { Debt } from "@/services/DebtOptimizer";
 
 export interface IncomeSource {
   id: string;
   name: string;
-  type: 'salary' | 'freelance' | 'investment' | 'equity' | 'other' | 'bonus' | 'rsu';
+  type:
+    | "salary"
+    | "freelance"
+    | "investment"
+    | "equity"
+    | "other"
+    | "bonus"
+    | "rsu";
   amount: number;
-  frequency: 'monthly' | 'annually';
+  frequency: "monthly" | "annually";
   growthRate: number;
   taxRate: number;
   // For bonus:
@@ -44,7 +69,7 @@ export interface ExpenseCategory {
   id: string;
   name: string;
   amount: number;
-  frequency: 'monthly' | 'annually';
+  frequency: "monthly" | "annually";
   growthRate: number;
   isFixed: boolean;
 }
@@ -88,41 +113,41 @@ export interface WealthProjection {
 const Index = () => {
   const [incomes, setIncomes] = useState<IncomeSource[]>([
     {
-      id: '1',
-      name: 'Base Salary',
-      type: 'salary',
+      id: "1",
+      name: "Base Salary",
+      type: "salary",
       amount: 120000,
-      frequency: 'annually',
+      frequency: "annually",
       growthRate: 3,
-      taxRate: getEffectiveTaxRate(120000, 'salary')
-    }
+      taxRate: getEffectiveTaxRate(120000, "salary"),
+    },
   ]);
 
   const [expenses, setExpenses] = useState<ExpenseCategory[]>([
     {
-      id: '1',
-      name: 'Housing',
+      id: "1",
+      name: "Housing",
       amount: 2500,
-      frequency: 'monthly',
+      frequency: "monthly",
       growthRate: 2,
-      isFixed: false
+      isFixed: false,
     },
     {
-      id: '2',
-      name: 'Food',
+      id: "2",
+      name: "Food",
       amount: 800,
-      frequency: 'monthly',
+      frequency: "monthly",
       growthRate: 3,
-      isFixed: false
+      isFixed: false,
     },
     {
-      id: '3',
-      name: 'Transportation',
+      id: "3",
+      name: "Transportation",
       amount: 600,
-      frequency: 'monthly',
+      frequency: "monthly",
       growthRate: 2,
-      isFixed: false
-    }
+      isFixed: false,
+    },
   ]);
 
   const [equityPayouts, setEquityPayouts] = useState<EquityPayout[]>([]);
@@ -131,9 +156,11 @@ const Index = () => {
   const [initialWealth, setInitialWealth] = useState(50000);
   const [investmentReturn, setInvestmentReturn] = useState(7);
   const [projectionYears, setProjectionYears] = useState(10);
-  const [state, setState] = useState<keyof typeof STATE_TAX_RATES>('California');
-  const [filingStatus, setFilingStatus] = useState<keyof typeof FEDERAL_TAX_BRACKETS>('single');
-  const [currentScenarioId, setCurrentScenarioId] = useState('base');
+  const [state, setState] =
+    useState<keyof typeof STATE_TAX_RATES>("California");
+  const [filingStatus, setFilingStatus] =
+    useState<keyof typeof FEDERAL_TAX_BRACKETS>("single");
+  const [currentScenarioId, setCurrentScenarioId] = useState("base");
   const [retirementAge, setRetirementAge] = useState(65);
   const [withdrawalRate, setWithdrawalRate] = useState(4);
   const [enableRetirementMode, setEnableRetirementMode] = useState(false);
@@ -141,67 +168,73 @@ const Index = () => {
   // Generate real estate expenses automatically
   const generateRealEstateExpenses = (): ExpenseCategory[] => {
     const realEstateExpenses: ExpenseCategory[] = [];
-    
-    properties.forEach(property => {
+
+    properties.forEach((property) => {
       // Generate mortgage payment expense if there's a loan
       if (property.loanAmount > 0 && property.interestRate > 0) {
         const monthlyRate = property.interestRate / 100 / 12;
         const numPayments = property.loanTermYears * 12;
-        const monthlyPayment = property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
-        
+        const monthlyPayment =
+          (property.loanAmount *
+            (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+          (Math.pow(1 + monthlyRate, numPayments) - 1);
+
         realEstateExpenses.push({
           id: `mortgage-${property.id}`,
           name: `Mortgage Payment - ${property.name}`,
           amount: monthlyPayment,
-          frequency: 'monthly',
+          frequency: "monthly",
           growthRate: 0, // Mortgage payments are typically fixed
-          isFixed: true
+          isFixed: true,
         });
       }
-      
+
       // Generate property tax expense
-      const annualPropertyTax = property.purchasePrice * (property.propertyTaxRate / 100);
+      const annualPropertyTax =
+        property.purchasePrice * (property.propertyTaxRate / 100);
       realEstateExpenses.push({
         id: `property-tax-${property.id}`,
         name: `Property Tax - ${property.name}`,
         amount: annualPropertyTax,
-        frequency: 'annually',
+        frequency: "annually",
         growthRate: 2, // Property taxes typically grow with inflation
-        isFixed: false
+        isFixed: false,
       });
-      
+
       // Generate maintenance expense
-      const annualMaintenance = property.purchasePrice * (property.maintenanceRate / 100);
+      const annualMaintenance =
+        property.purchasePrice * (property.maintenanceRate / 100);
       realEstateExpenses.push({
         id: `maintenance-${property.id}`,
         name: `Maintenance - ${property.name}`,
         amount: annualMaintenance,
-        frequency: 'annually',
+        frequency: "annually",
         growthRate: 3, // Maintenance costs typically grow faster than inflation
-        isFixed: false
+        isFixed: false,
       });
     });
-    
+
     return realEstateExpenses;
   };
 
   const generateDebtExpenses = (): ExpenseCategory[] => {
-    return debts.map(debt => ({
+    return debts.map((debt) => ({
       id: `debt-payment-${debt.id}`,
       name: `Loan Payment - ${debt.name}`,
       amount: debt.minimumPayment,
-      frequency: 'monthly',
+      frequency: "monthly",
       growthRate: 0,
-      isFixed: true
+      isFixed: true,
     }));
   };
 
   // Combine user expenses with generated real estate expenses
   const getAllExpenses = (): ExpenseCategory[] => {
-    const userExpenses = expenses.filter(expense => 
-      !expense.id.startsWith('mortgage-') && 
-      !expense.id.startsWith('property-tax-') && 
-      !expense.id.startsWith('maintenance-')
+    const userExpenses = expenses.filter(
+      (expense) =>
+        !expense.id.startsWith("mortgage-") &&
+        !expense.id.startsWith("property-tax-") &&
+        !expense.id.startsWith("maintenance-"),
     );
     const realEstateExpenses = generateRealEstateExpenses();
     const debtExpenses = generateDebtExpenses();
@@ -220,8 +253,13 @@ const Index = () => {
     setInitialWealth(scenarioData.initialWealth ?? 50000);
     setInvestmentReturn(scenarioData.investmentReturn ?? 7);
     setProjectionYears(scenarioData.projectionYears ?? 10);
-    setState((scenarioData.state as keyof typeof STATE_TAX_RATES) ?? 'California');
-    setFilingStatus((scenarioData.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS) ?? 'single');
+    setState(
+      (scenarioData.state as keyof typeof STATE_TAX_RATES) ?? "California",
+    );
+    setFilingStatus(
+      (scenarioData.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS) ??
+        "single",
+    );
   }, [currentScenarioId]);
 
   React.useEffect(() => {
@@ -255,13 +293,19 @@ const Index = () => {
   const calculateTaxesByIncomeType = (year: number) => {
     // Group income by type and calculate subtotals
     const incomeSubtotals: Record<string, number> = {};
-    
-    incomes.forEach(income => {
-      const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-      let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-      
+
+    incomes.forEach((income) => {
+      const annualAmount =
+        income.frequency === "monthly" ? income.amount * 12 : income.amount;
+      let adjustedAmount =
+        annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+
       // Handle RSU vesting logic
-      if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+      if (
+        income.type === "rsu" &&
+        income.vestingStartYear &&
+        income.vestingLength
+      ) {
         const traunchSize = (income.amount || 0) / income.vestingLength;
         const vestingYear = income.vestingStartYear;
         if (year >= vestingYear && year < vestingYear + income.vestingLength) {
@@ -270,7 +314,7 @@ const Index = () => {
           adjustedAmount = 0;
         }
       }
-      
+
       if (!incomeSubtotals[income.type]) {
         incomeSubtotals[income.type] = 0;
       }
@@ -278,12 +322,14 @@ const Index = () => {
     });
 
     // Add equity payouts for this year
-    const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
-    yearlyEquityPayouts.forEach(payout => {
-      if (!incomeSubtotals['equity']) {
-        incomeSubtotals['equity'] = 0;
+    const yearlyEquityPayouts = equityPayouts.filter(
+      (payout) => payout.year === year,
+    );
+    yearlyEquityPayouts.forEach((payout) => {
+      if (!incomeSubtotals["equity"]) {
+        incomeSubtotals["equity"] = 0;
       }
-      incomeSubtotals['equity'] += payout.amount;
+      incomeSubtotals["equity"] += payout.amount;
     });
 
     // Calculate taxes based on subtotals
@@ -291,7 +337,10 @@ const Index = () => {
     Object.entries(incomeSubtotals).forEach(([type, amount]) => {
       if (amount > 0) {
         const taxValue = calculateTotalTax(amount, type, state, filingStatus);
-        const tax = typeof taxValue === "number" ? taxValue : (taxValue.federal + taxValue.state);
+        const tax =
+          typeof taxValue === "number"
+            ? taxValue
+            : taxValue.federal + taxValue.state;
         const payroll = calculatePayrollTaxes(amount, type, filingStatus);
         totalTaxes += tax + payroll.socialSecurity + payroll.medicare;
       }
@@ -313,34 +362,45 @@ const Index = () => {
 
     for (let year = 1; year <= projectionYears; year++) {
       let grossIncome = 0;
-      
+
       // Retirement Mode check
       const currentAge = 30 + year;
       const isRetired = enableRetirementMode && currentAge >= retirementAge;
 
       if (!isRetired) {
         // Calculate gross income
-        incomes.forEach(income => {
-          const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-          let adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
-          
+        incomes.forEach((income) => {
+          const annualAmount =
+            income.frequency === "monthly" ? income.amount * 12 : income.amount;
+          let adjustedAmount =
+            annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+
           // Handle RSU vesting logic
-          if (income.type === 'rsu' && income.vestingStartYear && income.vestingLength) {
+          if (
+            income.type === "rsu" &&
+            income.vestingStartYear &&
+            income.vestingLength
+          ) {
             const traunchSize = (income.amount || 0) / income.vestingLength;
             const vestingYear = income.vestingStartYear;
-            if (year >= vestingYear && year < vestingYear + income.vestingLength) {
+            if (
+              year >= vestingYear &&
+              year < vestingYear + income.vestingLength
+            ) {
               adjustedAmount = traunchSize;
             } else {
               adjustedAmount = 0;
             }
           }
-          
+
           grossIncome += adjustedAmount;
         });
 
         // Add equity payouts
-        const yearlyEquityPayouts = equityPayouts.filter(payout => payout.year === year);
-        yearlyEquityPayouts.forEach(payout => {
+        const yearlyEquityPayouts = equityPayouts.filter(
+          (payout) => payout.year === year,
+        );
+        yearlyEquityPayouts.forEach((payout) => {
           grossIncome += payout.amount;
         });
       }
@@ -351,18 +411,26 @@ const Index = () => {
 
       // Calculate expenses including auto-generated real estate expenses
       let totalExpenses = 0;
-      allExpenses.forEach(expense => {
+      allExpenses.forEach((expense) => {
         // Skip real estate expenses that haven't started yet
-        if (expense.id.includes('mortgage-') || expense.id.includes('property-tax-') || expense.id.includes('maintenance-')) {
-          const propertyId = expense.id.split('-')[1];
-          const property = properties.find(p => p.id === propertyId);
+        if (
+          expense.id.includes("mortgage-") ||
+          expense.id.includes("property-tax-") ||
+          expense.id.includes("maintenance-")
+        ) {
+          const propertyId = expense.id.split("-")[1];
+          const property = properties.find((p) => p.id === propertyId);
           if (property && year < property.purchaseYear) {
             return; // Skip this expense if property hasn't been purchased yet
           }
         }
-        
-        const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
-        const adjustedAmount = annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
+
+        const annualAmount =
+          expense.frequency === "monthly"
+            ? expense.amount * 12
+            : expense.amount;
+        const adjustedAmount =
+          annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
         totalExpenses += adjustedAmount;
       });
 
@@ -371,16 +439,19 @@ const Index = () => {
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
 
-      properties.forEach(property => {
+      properties.forEach((property) => {
         if (year >= property.purchaseYear) {
           const id = property.id;
           const yearsOwned = year - property.purchaseYear + 1;
-          const currentValue = property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
+          const currentValue =
+            property.purchasePrice *
+            Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
           realEstateValue += currentValue;
 
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
+codex/fix-net-worth-drift-caused-by-real-estate-module
           const monthlyPayment = property.loanAmount > 0 ?
             (property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
               (Math.pow(1 + monthlyRate, numPayments) - 1) : 0;
@@ -418,6 +489,26 @@ const Index = () => {
             prevValue:  currentValue,
             prevBalance: remainingBalance
           };
+
+          if (monthsOwned < numPayments) {
+            const monthlyPayment =
+              (property.loanAmount *
+                (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+              (Math.pow(1 + monthlyRate, numPayments) - 1);
+            const remainingBalance =
+              (property.loanAmount *
+                (Math.pow(1 + monthlyRate, numPayments) -
+                  Math.pow(1 + monthlyRate, monthsOwned))) /
+              (Math.pow(1 + monthlyRate, numPayments) - 1);
+            totalLoanBalance += Math.max(0, remainingBalance);
+            realEstateExpenses += monthlyPayment * 12;
+            realEstateEquity += currentValue - Math.max(0, remainingBalance);
+          } else {
+            realEstateEquity += currentValue;
+          }
+          realEstateExpenses += currentValue * (property.maintenanceRate / 100);
+          realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
+main
         }
       });
 
@@ -439,7 +530,7 @@ const Index = () => {
         taxes,
         realEstateValue,
         realEstateEquity: realEstateEquity,
-        loanBalance: totalLoanBalance
+        loanBalance: totalLoanBalance,
       });
     }
 
@@ -462,7 +553,9 @@ const Index = () => {
 
   // FIX: scenario projection calculations and tax destructuring
   const getProjectionsForScenario = (scenarioId: string) => {
-    const scenario = scenarioService.getAllScenarios().find((s) => s.id === scenarioId);
+    const scenario = scenarioService
+      .getAllScenarios()
+      .find((s) => s.id === scenarioId);
     if (!scenario) return [];
     const s = scenario.data;
     let liquidWealth = s.initialWealth ?? 50000;
@@ -482,13 +575,26 @@ const Index = () => {
       const equityArr = s.equityPayouts ?? [];
       const propsArr = s.properties ?? [];
 
-      incomesArr.forEach((income:any) => {
-        const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
-        const adjustedAmount = annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
+      incomesArr.forEach((income: any) => {
+        const annualAmount =
+          income.frequency === "monthly" ? income.amount * 12 : income.amount;
+        const adjustedAmount =
+          annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
         grossIncome += adjustedAmount;
-        const taxValue = calculateTotalTax(adjustedAmount, income.type, s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
-        const payroll = calculatePayrollTaxes(adjustedAmount, income.type, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
-        let federal = 0, stateTax = 0;
+        const taxValue = calculateTotalTax(
+          adjustedAmount,
+          income.type,
+          s.state as keyof typeof STATE_TAX_RATES,
+          s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS,
+          { split: true },
+        );
+        const payroll = calculatePayrollTaxes(
+          adjustedAmount,
+          income.type,
+          s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS,
+        );
+        let federal = 0,
+          stateTax = 0;
         if (typeof taxValue === "number") {
           federal = taxValue;
         } else {
@@ -499,12 +605,23 @@ const Index = () => {
         stateTaxes += stateTax;
         taxes += federal + stateTax + payroll.socialSecurity + payroll.medicare;
       });
-      const yearlyEquityPayouts = equityArr.filter((p:any) => p.year === year);
-      yearlyEquityPayouts.forEach((payout:any) => {
+      const yearlyEquityPayouts = equityArr.filter((p: any) => p.year === year);
+      yearlyEquityPayouts.forEach((payout: any) => {
         grossIncome += payout.amount;
-        const taxValue = calculateTotalTax(payout.amount, 'equity', s.state as keyof typeof STATE_TAX_RATES, s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS, { split: true });
-        const payroll = calculatePayrollTaxes(payout.amount, 'equity', s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS);
-        let federal = 0, stateTax = 0;
+        const taxValue = calculateTotalTax(
+          payout.amount,
+          "equity",
+          s.state as keyof typeof STATE_TAX_RATES,
+          s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS,
+          { split: true },
+        );
+        const payroll = calculatePayrollTaxes(
+          payout.amount,
+          "equity",
+          s.filingStatus as keyof typeof FEDERAL_TAX_BRACKETS,
+        );
+        let federal = 0,
+          stateTax = 0;
         if (typeof taxValue === "number") {
           federal = taxValue;
         } else {
@@ -519,9 +636,13 @@ const Index = () => {
       const netIncome = grossIncome - taxes;
       // EXPENSES
       let totalExpenses = 0;
-      (s.expenses ?? []).forEach((expense:any) => {
-        const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
-        const adjustedAmount = annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
+      (s.expenses ?? []).forEach((expense: any) => {
+        const annualAmount =
+          expense.frequency === "monthly"
+            ? expense.amount * 12
+            : expense.amount;
+        const adjustedAmount =
+          annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
         totalExpenses += adjustedAmount;
       });
 
@@ -529,16 +650,19 @@ const Index = () => {
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
 
-      propsArr.forEach((property:any) => {
+      propsArr.forEach((property: any) => {
         if (year >= property.purchaseYear) {
           const id = property.id;
           const yearsOwned = year - property.purchaseYear + 1;
-          const currentValue = property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
+          const currentValue =
+            property.purchasePrice *
+            Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
           realEstateValue += currentValue;
 
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
+codex/fix-net-worth-drift-caused-by-real-estate-module
           const monthlyPayment = property.loanAmount > 0 ?
             (property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
               (Math.pow(1 + monthlyRate, numPayments) - 1) : 0;
@@ -576,10 +700,31 @@ const Index = () => {
             prevValue:  currentValue,
             prevBalance: remainingBalance
           };
+
+          if (monthsOwned < numPayments) {
+            const monthlyPayment =
+              (property.loanAmount *
+                (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+              (Math.pow(1 + monthlyRate, numPayments) - 1);
+            const remainingBalance =
+              (property.loanAmount *
+                (Math.pow(1 + monthlyRate, numPayments) -
+                  Math.pow(1 + monthlyRate, monthsOwned))) /
+              (Math.pow(1 + monthlyRate, numPayments) - 1);
+            totalLoanBalance += Math.max(0, remainingBalance);
+            realEstateExpenses += monthlyPayment * 12;
+            realEstateEquity += currentValue - Math.max(0, remainingBalance);
+          } else {
+            realEstateEquity += currentValue;
+          }
+          realEstateExpenses += currentValue * (property.maintenanceRate / 100);
+          realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
+main
         }
       });
       let savings = netIncome - totalExpenses;
-      liquidWealth = (liquidWealth + savings) * (1 + (s.investmentReturn ?? 7) / 100);
+      liquidWealth =
+        (liquidWealth + savings) * (1 + (s.investmentReturn ?? 7) / 100);
       cumulativeWealth = liquidWealth + realEstateEquity;
 
       projections.push({
@@ -604,7 +749,7 @@ const Index = () => {
     equityPayouts,
     properties,
     projections,
-    scenarioName: scenarioService.getCurrentScenario().name
+    scenarioName: scenarioService.getCurrentScenario().name,
   };
 
   // Handler for NLPChatBox actions
@@ -617,12 +762,16 @@ const Index = () => {
         // For MVP, only update year 1 "salary" row
         let found = false;
         const newArr = prev.map((inc) => {
-          if (inc.type === "salary" && (!inc.bonusYear || inc.bonusYear === year)) {
+          if (
+            inc.type === "salary" &&
+            (!inc.bonusYear || inc.bonusYear === year)
+          ) {
             found = true;
             return {
               ...inc,
               amount: salary,
-              growthRate: growthRate !== undefined ? growthRate : inc.growthRate
+              growthRate:
+                growthRate !== undefined ? growthRate : inc.growthRate,
             };
           }
           return inc;
@@ -638,8 +787,8 @@ const Index = () => {
               amount: salary,
               frequency: "annually",
               growthRate: growthRate || 0,
-              taxRate: 0
-            }
+              taxRate: 0,
+            },
           ];
         }
         return newArr;
@@ -662,7 +811,9 @@ const Index = () => {
         toast({
           title: "Logic submitted!",
           description: (
-            <pre className="text-xs whitespace-pre-wrap max-w-xs">{JSON.stringify(logicJSON, null, 2)}</pre>
+            <pre className="text-xs whitespace-pre-wrap max-w-xs">
+              {JSON.stringify(logicJSON, null, 2)}
+            </pre>
           ),
         });
       });
@@ -673,7 +824,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-
       {/* ---- FORECAST CHART FRONT/AND/CENTER ---- */}
       <div className="container mx-auto p-6">
         <div className="mb-8">
@@ -682,7 +832,8 @@ const Index = () => {
             Wealth Forecaster
           </h1>
           <p className="text-lg text-slate-600">
-            Plan your financial future with comprehensive income, expense, tax, and real estate modeling
+            Plan your financial future with comprehensive income, expense, tax,
+            and real estate modeling
           </p>
         </div>
 
@@ -698,7 +849,7 @@ const Index = () => {
         />
 
         <div className="mb-6">
-          <WealthDashboard 
+          <WealthDashboard
             projections={projections}
             initialWealth={initialWealth}
             setInitialWealth={setInitialWealth}
@@ -759,10 +910,7 @@ const Index = () => {
               <BarChart3 className="w-4 h-4" />
               Scenarios
             </TabsTrigger>
-            <TabsTrigger value="data" className="flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4" />
-              Data
-            </TabsTrigger>
+            <TabsTrigger value="data">Data</TabsTrigger>
             <TabsTrigger value="retirement" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Retirement
@@ -790,19 +938,28 @@ const Index = () => {
 
           <TabsContent value="expenses" className="space-y-6">
             <Card className="p-6">
-              <ExpenseManager expenses={getAllExpenses()} setExpenses={setExpenses} />
+              <ExpenseManager
+                expenses={getAllExpenses()}
+                setExpenses={setExpenses}
+              />
             </Card>
           </TabsContent>
 
           <TabsContent value="equity" className="space-y-6">
             <Card className="p-6">
-              <EquityManager equityPayouts={equityPayouts} setEquityPayouts={setEquityPayouts} />
+              <EquityManager
+                equityPayouts={equityPayouts}
+                setEquityPayouts={setEquityPayouts}
+              />
             </Card>
           </TabsContent>
 
           <TabsContent value="realestate" className="space-y-6">
             <Card className="p-6">
-              <RealEstateManager properties={properties} setProperties={setProperties} />
+              <RealEstateManager
+                properties={properties}
+                setProperties={setProperties}
+              />
             </Card>
           </TabsContent>
 
@@ -814,7 +971,7 @@ const Index = () => {
 
           <TabsContent value="goals" className="space-y-6">
             <Card className="p-6">
-              <GoalManager 
+              <GoalManager
                 netWorth={currentNetWorth}
                 savingsRate={currentSavingsRate}
                 totalDebt={totalDebt}
@@ -824,9 +981,9 @@ const Index = () => {
 
           <TabsContent value="taxes" className="space-y-6">
             <Card className="p-6">
-              <TaxCalculator 
-                incomes={incomes} 
-                projections={projections} 
+              <TaxCalculator
+                incomes={incomes}
+                projections={projections}
                 state={state}
                 filingStatus={filingStatus}
               />
@@ -852,30 +1009,15 @@ const Index = () => {
 
           <TabsContent value="scenarios" className="space-y-6">
             <Card className="p-6">
-              <ScenarioComparison 
+              <ScenarioComparison
                 scenarios={scenarioService.getAllScenarios()}
                 getProjectionsForScenario={getProjectionsForScenario}
               />
             </Card>
           </TabsContent>
 
-          <TabsContent value="data" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Data Export</h2>
-                <ExportButtons data={exportData} elementId="data-table" />
-              </div>
-              <div id="data-table">
-                <DataTable 
-                  incomes={incomes}
-                  expenses={getAllExpenses()}
-                  equityPayouts={equityPayouts}
-                  properties={properties}
-                  projections={projections}
-                  projectionYears={projectionYears}
-                />
-              </div>
-            </Card>
+          <TabsContent value="data">
+            <DataTab />
           </TabsContent>
 
           <TabsContent value="retirement" className="space-y-6">
@@ -895,71 +1037,146 @@ const Index = () => {
       {/* --- BEGIN: Model Assumptions & Forecast Summary --- */}
       <section className="container mx-auto pb-16 pt-8">
         <div className="bg-white p-7 md:p-10 rounded-xl shadow-lg border border-slate-200 max-w-4xl mx-auto">
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-3">Model Assumptions & Forecast Summary</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800 mb-3">
+            Model Assumptions & Forecast Summary
+          </h2>
           <p className="mb-4 text-slate-700 leading-relaxed">
-            <span className="font-semibold text-slate-800">Overview:</span><br />
-            This financial model provides a comprehensive 10,000-foot view of your personal wealth trajectory, integrating all relevant sources of income, expenses, taxes, investments, real estate, and scenario planning. The outcome: year-by-year projections of your net worth, savings, and cash flow under various user-defined assumptions, helping you visualize the impact of your financial decisions.
+            <span className="font-semibold text-slate-800">Overview:</span>
+            <br />
+            This financial model provides a comprehensive 10,000-foot view of
+            your personal wealth trajectory, integrating all relevant sources of
+            income, expenses, taxes, investments, real estate, and scenario
+            planning. The outcome: year-by-year projections of your net worth,
+            savings, and cash flow under various user-defined assumptions,
+            helping you visualize the impact of your financial decisions.
           </p>
           <p className="mb-2 text-slate-700">
             <span className="font-semibold">Key Inputs Analyzed:</span>
             <ul className="list-disc list-inside ml-2 mt-1 text-slate-700">
               <li>
-                <span className="font-semibold">Initial Net Worth:</span> The model starts with your provided net worth of <span className="font-mono">{new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0}).format(initialWealth)}</span>.
+                <span className="font-semibold">Initial Net Worth:</span> The
+                model starts with your provided net worth of{" "}
+                <span className="font-mono">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                    maximumFractionDigits: 0,
+                  }).format(initialWealth)}
+                </span>
+                .
               </li>
               <li>
-                <span className="font-semibold">Income Streams:</span> All defined sources of income—including salaries, freelancing, investments, equity, real estate, or other categories—are incorporated with their own growth rates, frequencies, and tax treatments.
+                <span className="font-semibold">Income Streams:</span> All
+                defined sources of income—including salaries, freelancing,
+                investments, equity, real estate, or other categories—are
+                incorporated with their own growth rates, frequencies, and tax
+                treatments.
               </li>
               <li>
-                <span className="font-semibold">Expense Categories:</span> All user-entered expense categories are modeled with projected inflation or growth and are accounted for monthly or annually as specified.
+                <span className="font-semibold">Expense Categories:</span> All
+                user-entered expense categories are modeled with projected
+                inflation or growth and are accounted for monthly or annually as
+                specified.
               </li>
               <li>
-                <span className="font-semibold">Investment Return:</span> Every year, your growing net worth is compounded by your selected expected annual investment return (<span className="font-mono">{investmentReturn}%</span>), reflecting asset growth.
+                <span className="font-semibold">Investment Return:</span> Every
+                year, your growing net worth is compounded by your selected
+                expected annual investment return (
+                <span className="font-mono">{investmentReturn}%</span>),
+                reflecting asset growth.
               </li>
               <li>
-                <span className="font-semibold">Projection Horizon:</span> The model spans <span className="font-mono">{projectionYears}</span> years, visualizing long-term outcomes.
+                <span className="font-semibold">Projection Horizon:</span> The
+                model spans <span className="font-mono">{projectionYears}</span>{" "}
+                years, visualizing long-term outcomes.
               </li>
               <li>
-                <span className="font-semibold">Taxation:</span> Federal and state tax calculations apply to each income source annually, using the filing status of <span className="font-mono">{FILING_STATUSES[filingStatus]}</span> and selected state (<span className="font-mono">{state}</span>), incorporating progressive bracket rules where appropriate.
+                <span className="font-semibold">Taxation:</span> Federal and
+                state tax calculations apply to each income source annually,
+                using the filing status of{" "}
+                <span className="font-mono">
+                  {FILING_STATUSES[filingStatus]}
+                </span>{" "}
+                and selected state (<span className="font-mono">{state}</span>),
+                incorporating progressive bracket rules where appropriate.
               </li>
               <li>
-                <span className="font-semibold">Real Estate & Loans:</span> Any properties and their associated debt, maintenance, tax rates, and home appreciation are fully integrated. Mortgage amortization and real estate equity are dynamically calculated over time.
+                <span className="font-semibold">Real Estate & Loans:</span> Any
+                properties and their associated debt, maintenance, tax rates,
+                and home appreciation are fully integrated. Mortgage
+                amortization and real estate equity are dynamically calculated
+                over time.
               </li>
               <li>
-                <span className="font-semibold">Scenario Planning:</span> All forecasts are scenario-driven, supporting side-by-side comparisons for alternate assumptions (e.g., life stages, job changes, market shocks).
+                <span className="font-semibold">Scenario Planning:</span> All
+                forecasts are scenario-driven, supporting side-by-side
+                comparisons for alternate assumptions (e.g., life stages, job
+                changes, market shocks).
               </li>
             </ul>
           </p>
           <p className="mt-4 mb-2 text-slate-700">
-            <span className="font-semibold">Forecast Methodology & Assumptions:</span>
+            <span className="font-semibold">
+              Forecast Methodology & Assumptions:
+            </span>
             <ul className="list-disc list-inside ml-2 mt-1 text-slate-700">
               <li>
-                <span className="font-semibold">Compound Growth:</span> Wealth growth is governed by the reinvestment of annual savings, compounded at the selected rate. Negative savings (i.e., spending more than you make) are subtracted from assets.
+                <span className="font-semibold">Compound Growth:</span> Wealth
+                growth is governed by the reinvestment of annual savings,
+                compounded at the selected rate. Negative savings (i.e.,
+                spending more than you make) are subtracted from assets.
               </li>
               <li>
-                <span className="font-semibold">Tax Modeling:</span> The model fully applies federal and state tax brackets annually. Investment income assumes capital gains treatment where applicable, while self-employment and equity are modeled per IRS guidelines.
+                <span className="font-semibold">Tax Modeling:</span> The model
+                fully applies federal and state tax brackets annually.
+                Investment income assumes capital gains treatment where
+                applicable, while self-employment and equity are modeled per IRS
+                guidelines.
               </li>
               <li>
-                <span className="font-semibold">Expense & Income Growth:</span> User-defined growth rates (such as inflation or merit increases) are applied automatically to each input every year.
+                <span className="font-semibold">Expense & Income Growth:</span>{" "}
+                User-defined growth rates (such as inflation or merit increases)
+                are applied automatically to each input every year.
               </li>
               <li>
-                <span className="font-semibold">Real Estate:</span> If you add properties, the model tracks equity accrual, loan payoff, home appreciation, and all annual carrying costs, for true net worth accuracy.
+                <span className="font-semibold">Real Estate:</span> If you add
+                properties, the model tracks equity accrual, loan payoff, home
+                appreciation, and all annual carrying costs, for true net worth
+                accuracy.
               </li>
               <li>
-                <span className="font-semibold">No Market Crash Modeling:</span> Base forecasts assume steady growth and do not model black swan market downturns; however, the Monte Carlo feature can be used for probabilistic scenarios.
+                <span className="font-semibold">No Market Crash Modeling:</span>{" "}
+                Base forecasts assume steady growth and do not model black swan
+                market downturns; however, the Monte Carlo feature can be used
+                for probabilistic scenarios.
               </li>
               <li>
-                <span className="font-semibold">Retirement Mode:</span> If enabled, the model switches from income accumulation to systematic withdrawals based on your chosen rate, with spending drawn from assets beyond your retirement age.
+                <span className="font-semibold">Retirement Mode:</span> If
+                enabled, the model switches from income accumulation to
+                systematic withdrawals based on your chosen rate, with spending
+                drawn from assets beyond your retirement age.
               </li>
               <li>
-                <span className="font-semibold">Debt & Other Factors:</span> Debt payments, if modeled, are factored into annual outflows.
+                <span className="font-semibold">Debt & Other Factors:</span>{" "}
+                Debt payments, if modeled, are factored into annual outflows.
               </li>
             </ul>
           </p>
           <p className="mt-4 text-slate-700">
-            <span className="font-semibold">Expert Interpretation:</span> These forecasts provide an illustrative, directional roadmap based on the information you provide. Outcomes depend critically on actual returns, spending discipline, unplanned life events, tax law changes, and market volatility. The tool is ideal for scenario analysis, long-term goal setting, and understanding which variables most influence your wealth trajectory—but it is not a guarantee of future results.
+            <span className="font-semibold">Expert Interpretation:</span> These
+            forecasts provide an illustrative, directional roadmap based on the
+            information you provide. Outcomes depend critically on actual
+            returns, spending discipline, unplanned life events, tax law
+            changes, and market volatility. The tool is ideal for scenario
+            analysis, long-term goal setting, and understanding which variables
+            most influence your wealth trajectory—but it is not a guarantee of
+            future results.
           </p>
           <p className="mt-5 text-slate-500 text-xs">
-            <span className="font-semibold">Limitations & Disclaimers:</span> This model is for educational use and planning support. For legal, tax, or investment decisions, please consult with an independent professional advisor.
+            <span className="font-semibold">Limitations & Disclaimers:</span>{" "}
+            This model is for educational use and planning support. For legal,
+            tax, or investment decisions, please consult with an independent
+            professional advisor.
           </p>
         </div>
       </section>

@@ -41,6 +41,7 @@ import { NLPChatBox } from "@/components/NLPChatBox";
 import { ConditionalLogicChat } from "@/components/ConditionalLogicChat";
 import SummaryDashboard from "@/components/SummaryDashboard";
 import { Debt } from "@/services/DebtOptimizer";
+import type { LogicToken } from "@/utils/suggestLogic";
 
 export interface IncomeSource {
   id: string;
@@ -453,15 +454,6 @@ const Index = () => {
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
-          codex / fix -
-            net -
-            worth -
-            drift -
-            caused -
-            by -
-            real -
-            estate -
-            module;
           const monthlyPayment =
             property.loanAmount > 0
               ? (property.loanAmount *
@@ -529,7 +521,6 @@ const Index = () => {
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-          main;
         }
       });
 
@@ -598,7 +589,7 @@ const Index = () => {
       const equityArr = s.equityPayouts ?? [];
       const propsArr = s.properties ?? [];
 
-      incomesArr.forEach((income: any) => {
+      incomesArr.forEach((income: IncomeSource) => {
         const annualAmount =
           income.frequency === "monthly" ? income.amount * 12 : income.amount;
         const adjustedAmount =
@@ -628,8 +619,10 @@ const Index = () => {
         stateTaxes += stateTax;
         taxes += federal + stateTax + payroll.socialSecurity + payroll.medicare;
       });
-      const yearlyEquityPayouts = equityArr.filter((p: any) => p.year === year);
-      yearlyEquityPayouts.forEach((payout: any) => {
+      const yearlyEquityPayouts = equityArr.filter(
+        (p: EquityPayout) => p.year === year,
+      );
+      yearlyEquityPayouts.forEach((payout: EquityPayout) => {
         grossIncome += payout.amount;
         const taxValue = calculateTotalTax(
           payout.amount,
@@ -659,7 +652,7 @@ const Index = () => {
       const netIncome = grossIncome - taxes;
       // EXPENSES
       let totalExpenses = 0;
-      (s.expenses ?? []).forEach((expense: any) => {
+      (s.expenses ?? []).forEach((expense: ExpenseCategory) => {
         const annualAmount =
           expense.frequency === "monthly"
             ? expense.amount * 12
@@ -673,7 +666,7 @@ const Index = () => {
       let realEstateEquity = 0;
       let totalLoanBalance = 0;
 
-      propsArr.forEach((property: any) => {
+      propsArr.forEach((property: RealEstateProperty) => {
         if (year >= property.purchaseYear) {
           const id = property.id;
           const yearsOwned = year - property.purchaseYear + 1;
@@ -685,15 +678,6 @@ const Index = () => {
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
-          codex / fix -
-            net -
-            worth -
-            drift -
-            caused -
-            by -
-            real -
-            estate -
-            module;
           const monthlyPayment =
             property.loanAmount > 0
               ? (property.loanAmount *
@@ -761,10 +745,9 @@ const Index = () => {
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-          main;
         }
       });
-      let savings = netIncome - totalExpenses;
+      const savings = netIncome - totalExpenses;
       liquidWealth =
         (liquidWealth + savings) * (1 + (s.investmentReturn ?? 7) / 100);
       cumulativeWealth = liquidWealth + realEstateEquity;
@@ -796,9 +779,9 @@ const Index = () => {
   };
 
   // Handler for NLPChatBox actions
-  const handleNLPAction = (action: { type: string; data: any }) => {
+  const handleNLPAction = (action: { type: string; data: Record<string, unknown> }) => {
     if (action.type === "set-salary") {
-      let { salary, growthRate, year } = action.data;
+      const { salary, growthRate, year } = action.data;
       if (!salary) return;
       // Try to find an existing salary for year 1, otherwise add new
       setIncomes((prev) => {
@@ -840,7 +823,7 @@ const Index = () => {
   };
 
   // Handler for logic builder actions
-  const handleLogicSubmit = (logicJSON: any) => {
+  const handleLogicSubmit = (logicJSON: LogicToken[]) => {
     // For proto/dev: just log to console and show a notification
     console.log("Logic submitted:", logicJSON);
 

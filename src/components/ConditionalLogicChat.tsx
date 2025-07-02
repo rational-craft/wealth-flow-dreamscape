@@ -16,10 +16,11 @@ import {
   toLogicText,
 } from "@/utils/suggestLogic";
 import { LogicOutput } from "./LogicOutput";
+import type { LogicToken } from "@/utils/suggestLogic";
 import { Search, Check, X } from "lucide-react";
 
 interface ConditionalLogicChatProps {
-  onLogicSubmit?: (logicJSON: any) => void;
+  onLogicSubmit?: (logicJSON: LogicToken[]) => void;
 }
 
 export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({
@@ -124,14 +125,14 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({
   const undo = () => {
     if (step === "logic" && logic.length > 0) {
       // Delete last condition+logic
-      let temp = logic.slice();
+      const temp = logic.slice();
       temp.pop();
       setLogic(temp);
       setStep("field");
     } else if (step === "value" && operator) setStep("operator");
     else if (step === "operator" && field) setStep("field");
     else if (step === "field" && logic.length > 0) {
-      let temp = logic.slice();
+      const temp = logic.slice();
       temp.pop();
       setLogic(temp);
       setStep("field");

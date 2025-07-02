@@ -41,7 +41,7 @@ export class DebtOptimizer {
     while (debtsCopy.some((d) => d.balance > 0)) {
       month++;
       const monthlyPayments: { debtId: string; amount: number }[] = [];
-      let remainingExtra = extraPayment;
+      const remainingExtra = extraPayment;
 
       // Make minimum payments first
       debtsCopy.forEach((debt) => {

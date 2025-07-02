@@ -107,7 +107,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({
       const income: BaseIncomeSource = {
         id: Date.now().toString(),
         name: newIncome.name,
-        type: newIncome.type as any,
+        type: newIncome.type as BaseIncomeSource["type"],
         amount: newIncome.amount,
         frequency: newIncome.frequency || "annually",
         growthRate: newIncome.growthRate || 3,
@@ -207,7 +207,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({
               <Label>Type</Label>
               <Select
                 value={income.type}
-                onValueChange={(value: any) =>
+                onValueChange={(value: BaseIncomeSource["type"]) =>
                   updateIncome(income.id, { type: value })
                 }
               >
@@ -323,7 +323,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({
                   <Label>Frequency</Label>
                   <Select
                     value={income.frequency}
-                    onValueChange={(value: any) =>
+                    onValueChange={(value: "monthly" | "annually") =>
                       updateIncome(income.id, { frequency: value })
                     }
                   >
@@ -434,7 +434,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({
               <Label htmlFor="income-type">Type</Label>
               <Select
                 value={newIncome.type}
-                onValueChange={(value: any) =>
+                onValueChange={(value: BaseIncomeSource["type"]) =>
                   setNewIncome({ ...newIncome, type: value })
                 }
               >
@@ -474,7 +474,7 @@ export const IncomeManager: React.FC<IncomeManagerProps> = ({
                 <Label htmlFor="income-frequency">Frequency</Label>
                 <Select
                   value={newIncome.frequency}
-                  onValueChange={(value: any) =>
+                  onValueChange={(value: "monthly" | "annually") =>
                     setNewIncome({ ...newIncome, frequency: value })
                   }
                 >

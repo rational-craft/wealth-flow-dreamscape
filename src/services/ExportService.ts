@@ -27,7 +27,7 @@ export class ExportService {
       'Cumulative Wealth': projection.cumulativeWealth,
       'Taxes Paid': projection.taxes,
       'Real Estate Value': projection.realEstateValue,
-      'Real Estate Equity': projection.realEateEquity, // <-- FIXED TYPO HERE!
+      'Real Estate Equity': projection.realEstateEquity,
       'Loan Balance': projection.loanBalance
     }));
     

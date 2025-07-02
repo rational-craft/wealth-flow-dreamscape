@@ -1,0 +1,3 @@
+.rdg-cell[data-value^="="] {
+  font-style: italic;
+}

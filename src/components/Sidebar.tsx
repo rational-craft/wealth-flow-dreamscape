@@ -13,11 +13,7 @@ export default function Sidebar() {
         <NavLink to="/dashboard" className={linkClasses} end>
           <Home className="w-4 h-4" /> Dashboard
         </NavLink>
-codex/wire-up-sidebar-layout-with-routing
         <NavLink to="/expenses" className={linkClasses} end>
-
-        <NavLink to="/" className={linkClasses} end>
-main
           <FileText className="w-4 h-4" /> Expenses
         </NavLink>
         <NavLink to="/income" className={linkClasses}>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ResponsiveContainer,
   BarChart,
@@ -8,24 +8,24 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-} from 'recharts';
+} from "recharts";
 
 // Mock data for the last 6 months of expenses
 const expenseHistory = [
-  { month: 'Apr', total: 4500 },
-  { month: 'May', total: 4700 },
-  { month: 'Jun', total: 4300 },
-  { month: 'Jul', total: 4800 },
-  { month: 'Aug', total: 5000 },
-  { month: 'Sep', total: 5100 },
+  { month: "Apr", total: 4500 },
+  { month: "May", total: 4700 },
+  { month: "Jun", total: 4300 },
+  { month: "Jul", total: 4800 },
+  { month: "Aug", total: 5000 },
+  { month: "Sep", total: 5100 },
 ];
 
 const monthlyIncome = 6000; // Mock monthly income
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
 
@@ -85,9 +85,7 @@ export const Dashboard: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" stroke="#64748b" />
               <YAxis stroke="#64748b" />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-              />
+              <Tooltip formatter={(value: number) => formatCurrency(value)} />
               <Bar dataKey="total" fill="#3b82f6" />
             </BarChart>
           </ResponsiveContainer>

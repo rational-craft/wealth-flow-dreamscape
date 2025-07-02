@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { ExpenseManager } from '@/components/ExpenseManager';
-import { ExpenseCategory } from '@/pages/Index';
+import React, { useState } from "react";
+import { ExpenseManager } from "@/components/ExpenseManager";
+import { ExpenseCategory } from "@/pages/Index";
 
 const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<ExpenseCategory[]>([
     {
-      id: '1',
-      name: 'Housing',
+      id: "1",
+      name: "Housing",
       amount: 2500,
-      frequency: 'monthly',
+      frequency: "monthly",
       growthRate: 2,
       isFixed: false,
     },

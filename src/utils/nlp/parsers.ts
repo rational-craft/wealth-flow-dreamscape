@@ -1,4 +1,3 @@
-
 /**
  * Extracts salary, growth rate, and year from natural language input
  */
@@ -7,10 +6,11 @@ export function extractSalaryInfo(input: string) {
   const growthMatch = input.match(/(\d+(\.\d+)?)% growth/i);
   const yearMatch = input.match(/year (\d+)/i);
 
-  let salary = salaryMatch ? parseInt(salaryMatch[2].replace(/,/g, "")) : undefined;
+  let salary = salaryMatch
+    ? parseInt(salaryMatch[2].replace(/,/g, ""))
+    : undefined;
   let growthRate = growthMatch ? parseFloat(growthMatch[1]) : undefined;
   let year = yearMatch ? parseInt(yearMatch[1]) : 1;
 
   return { salary, growthRate, year };
 }
-

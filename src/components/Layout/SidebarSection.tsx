@@ -25,7 +25,7 @@ export default function SidebarSection({ title, children }: Props) {
         setExpanded((prev) => !prev);
       }
     },
-    [expanded, toggleAll]
+    [expanded, toggleAll],
   );
 
   return (
@@ -34,12 +34,18 @@ export default function SidebarSection({ title, children }: Props) {
         className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70 hover:text-white"
         onClick={handleClick}
       >
-        <span className={`text-left flex-1 ${collapsed ? "opacity-0 group-hover:opacity-100" : ""}`}>{title}</span>
+        <span
+          className={`text-left flex-1 ${collapsed ? "opacity-0 group-hover:opacity-100" : ""}`}
+        >
+          {title}
+        </span>
         <ChevronRight
           className={`w-3 h-3 transition-transform ${expanded ? "rotate-90" : "rotate-0"} ${collapsed ? "opacity-0 group-hover:opacity-100" : ""}`}
         />
       </button>
-      <div className={`${expanded ? "block" : "hidden"} pl-1 space-y-1`}>{children}</div>
+      <div className={`${expanded ? "block" : "hidden"} pl-1 space-y-1`}>
+        {children}
+      </div>
     </div>
   );
 }

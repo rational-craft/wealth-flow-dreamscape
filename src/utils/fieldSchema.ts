@@ -1,4 +1,3 @@
-
 /**
  * Mocked schema for demonstration.
  * In a real app, fetch these from actual forms/schemas.
@@ -23,7 +22,14 @@ export const FIELDS: FieldDefinition[] = [
 ];
 
 export const OPERATORS = {
-  string: ["is", "is not", "contains", "does not contain", "starts with", "ends with"],
+  string: [
+    "is",
+    "is not",
+    "contains",
+    "does not contain",
+    "starts with",
+    "ends with",
+  ],
   number: ["=", "!=", ">", "<", ">=", "<="],
   date: ["before", "after", "on", "not on"],
   email: ["is", "is not", "contains", "does not contain"],

@@ -1,10 +1,22 @@
-
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { IncomeSource, ExpenseCategory, EquityPayout, RealEstateProperty, WealthProjection } from '@/pages/Index';
-import { Database } from 'lucide-react';
+import React, { useState, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  IncomeSource,
+  ExpenseCategory,
+  EquityPayout,
+  RealEstateProperty,
+  WealthProjection,
+} from "@/pages/Index";
+import { Database } from "lucide-react";
 
 interface DataTableProps {
   incomes: IncomeSource[];
@@ -18,7 +30,13 @@ interface DataTableProps {
 interface EditedValue {
   id: string;
   year: number;
-  type: 'income' | 'expense' | 'equity' | 'property-value' | 'property-loan' | 'projection';
+  type:
+    | "income"
+    | "expense"
+    | "equity"
+    | "property-value"
+    | "property-loan"
+    | "projection";
   field: string;
   value: number;
 }
@@ -29,95 +47,136 @@ export const DataTable: React.FC<DataTableProps> = ({
   equityPayouts,
   properties,
   projections,
-  projectionYears
+  projectionYears,
 }) => {
   const [editedValues, setEditedValues] = useState<EditedValue[]>([]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const parseCurrency = (value: string): number => {
-    return parseFloat(value.replace(/[$,]/g, '')) || 0;
+    return parseFloat(value.replace(/[$,]/g, "")) || 0;
   };
 
-  const getEditedValue = (id: string, year: number, type: string, field: string): number | null => {
-    const edited = editedValues.find(e => 
-      e.id === id && e.year === year && e.type === type && e.field === field
+  const getEditedValue = (
+    id: string,
+    year: number,
+    type: string,
+    field: string,
+  ): number | null => {
+    const edited = editedValues.find(
+      (e) =>
+        e.id === id && e.year === year && e.type === type && e.field === field,
     );
     return edited ? edited.value : null;
   };
 
-  const updateEditedValue = useCallback((id: string, year: number, type: string, field: string, value: number) => {
-    setEditedValues(prev => {
-      const existing = prev.findIndex(e => 
-        e.id === id && e.year === year && e.type === type && e.field === field
-      );
-      
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = { id, year, type: type as any, field, value };
-        return updated;
-      } else {
-        return [...prev, { id, year, type: type as any, field, value }];
-      }
-    });
-  }, []);
+  const updateEditedValue = useCallback(
+    (id: string, year: number, type: string, field: string, value: number) => {
+      setEditedValues((prev) => {
+        const existing = prev.findIndex(
+          (e) =>
+            e.id === id &&
+            e.year === year &&
+            e.type === type &&
+            e.field === field,
+        );
+
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { id, year, type: type as any, field, value };
+          return updated;
+        } else {
+          return [...prev, { id, year, type: type as any, field, value }];
+        }
+      });
+    },
+    [],
+  );
 
   const getIncomeByYear = (income: IncomeSource, year: number) => {
-    const editedValue = getEditedValue(income.id, year, 'income', 'amount');
+    const editedValue = getEditedValue(income.id, year, "income", "amount");
     if (editedValue !== null) return editedValue;
-    
-    const annualAmount = income.frequency === 'monthly' ? income.amount * 12 : income.amount;
+
+    const annualAmount =
+      income.frequency === "monthly" ? income.amount * 12 : income.amount;
     return annualAmount * Math.pow(1 + income.growthRate / 100, year - 1);
   };
 
   const getExpenseByYear = (expense: ExpenseCategory, year: number) => {
-    const editedValue = getEditedValue(expense.id, year, 'expense', 'amount');
+    const editedValue = getEditedValue(expense.id, year, "expense", "amount");
     if (editedValue !== null) return editedValue;
-    
-    const annualAmount = expense.frequency === 'monthly' ? expense.amount * 12 : expense.amount;
+
+    const annualAmount =
+      expense.frequency === "monthly" ? expense.amount * 12 : expense.amount;
     return annualAmount * Math.pow(1 + expense.growthRate / 100, year - 1);
   };
 
-  const getPropertyValueByYear = (property: RealEstateProperty, year: number) => {
+  const getPropertyValueByYear = (
+    property: RealEstateProperty,
+    year: number,
+  ) => {
     if (year < property.purchaseYear) return 0;
-    
-    const editedValue = getEditedValue(property.id, year, 'property-value', 'value');
+
+    const editedValue = getEditedValue(
+      property.id,
+      year,
+      "property-value",
+      "value",
+    );
     if (editedValue !== null) return editedValue;
-    
+
     const yearsOwned = year - property.purchaseYear + 1;
-    return property.purchasePrice * Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1);
+    return (
+      property.purchasePrice *
+      Math.pow(1 + property.appreciationRate / 100, yearsOwned - 1)
+    );
   };
 
-  const getPropertyLoanBalanceByYear = (property: RealEstateProperty, year: number) => {
+  const getPropertyLoanBalanceByYear = (
+    property: RealEstateProperty,
+    year: number,
+  ) => {
     if (year < property.purchaseYear) return 0;
-    
-    const editedValue = getEditedValue(property.id, year, 'property-loan', 'balance');
+
+    const editedValue = getEditedValue(
+      property.id,
+      year,
+      "property-loan",
+      "balance",
+    );
     if (editedValue !== null) return editedValue;
-    
+
     const monthlyRate = property.interestRate / 100 / 12;
     const numPayments = property.loanTermYears * 12;
     const monthsOwned = (year - property.purchaseYear) * 12;
-    
+
     if (monthsOwned >= numPayments) return 0;
-    
-    const remainingBalance = property.loanAmount * 
-      (Math.pow(1 + monthlyRate, numPayments) - Math.pow(1 + monthlyRate, monthsOwned)) / 
+
+    const remainingBalance =
+      (property.loanAmount *
+        (Math.pow(1 + monthlyRate, numPayments) -
+          Math.pow(1 + monthlyRate, monthsOwned))) /
       (Math.pow(1 + monthlyRate, numPayments) - 1);
-    
+
     return Math.max(0, remainingBalance);
   };
 
   const getProjectionValue = (projection: WealthProjection, field: string) => {
-    const editedValue = getEditedValue('projection', projection.year, 'projection', field);
+    const editedValue = getEditedValue(
+      "projection",
+      projection.year,
+      "projection",
+      field,
+    );
     if (editedValue !== null) return editedValue;
-    
+
     return (projection as any)[field];
   };
 
@@ -139,9 +198,9 @@ export const DataTable: React.FC<DataTableProps> = ({
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         handleSave();
-      } else if (e.key === 'Escape') {
+      } else if (e.key === "Escape") {
         setInputValue(formatCurrency(value));
         setIsEditing(false);
       }
@@ -163,7 +222,7 @@ export const DataTable: React.FC<DataTableProps> = ({
     return (
       <div
         className={`cursor-pointer hover:bg-slate-50 p-1 rounded text-center ${
-          isEdited ? 'text-orange-600 font-semibold' : ''
+          isEdited ? "text-orange-600 font-semibold" : ""
         }`}
         onClick={() => {
           setInputValue(formatCurrency(value));
@@ -181,7 +240,9 @@ export const DataTable: React.FC<DataTableProps> = ({
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Database className="text-blue-600" />
-        <h3 className="text-xl font-semibold text-slate-800">Year-by-Year Data</h3>
+        <h3 className="text-xl font-semibold text-slate-800">
+          Year-by-Year Data
+        </h3>
         <div className="text-sm text-slate-600 bg-blue-50 px-3 py-1 rounded-full">
           Complete editable dataset with growth applied
         </div>
@@ -202,8 +263,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <TableHead>Income Source</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Growth Rate</TableHead>
-                {years.map(year => (
-                  <TableHead key={year} className="text-center">Year {year}</TableHead>
+                {years.map((year) => (
+                  <TableHead key={year} className="text-center">
+                    Year {year}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -213,7 +276,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                   <TableCell className="font-medium">{income.name}</TableCell>
                   <TableCell className="capitalize">{income.type}</TableCell>
                   <TableCell>{income.growthRate}%</TableCell>
-                  {years.map(year => (
+                  {years.map((year) => (
                     <TableCell key={year} className="text-center p-1">
                       <EditableCell
                         value={getIncomeByYear(income, year)}
@@ -221,7 +284,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                         year={year}
                         type="income"
                         field="amount"
-                        isEdited={getEditedValue(income.id, year, 'income', 'amount') !== null}
+                        isEdited={
+                          getEditedValue(
+                            income.id,
+                            year,
+                            "income",
+                            "amount",
+                          ) !== null
+                        }
                       />
                     </TableCell>
                   ))}
@@ -244,8 +314,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <TableHead>Expense Category</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Growth Rate</TableHead>
-                {years.map(year => (
-                  <TableHead key={year} className="text-center">Year {year}</TableHead>
+                {years.map((year) => (
+                  <TableHead key={year} className="text-center">
+                    Year {year}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -254,12 +326,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <TableRow key={expense.id}>
                   <TableCell className="font-medium">{expense.name}</TableCell>
                   <TableCell>
-                    <span className={`text-xs px-2 py-1 rounded ${expense.isFixed ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                      {expense.isFixed ? 'Fixed' : 'Variable'}
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${expense.isFixed ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
+                    >
+                      {expense.isFixed ? "Fixed" : "Variable"}
                     </span>
                   </TableCell>
                   <TableCell>{expense.growthRate}%</TableCell>
-                  {years.map(year => (
+                  {years.map((year) => (
                     <TableCell key={year} className="text-center p-1">
                       <EditableCell
                         value={getExpenseByYear(expense, year)}
@@ -267,7 +341,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                         year={year}
                         type="expense"
                         field="amount"
-                        isEdited={getEditedValue(expense.id, year, 'expense', 'amount') !== null}
+                        isEdited={
+                          getEditedValue(
+                            expense.id,
+                            year,
+                            "expense",
+                            "amount",
+                          ) !== null
+                        }
                       />
                     </TableCell>
                   ))}
@@ -289,16 +370,20 @@ export const DataTable: React.FC<DataTableProps> = ({
               <TableHeader>
                 <TableRow>
                   <TableHead>Description</TableHead>
-                  {years.map(year => (
-                    <TableHead key={year} className="text-center">Year {year}</TableHead>
+                  {years.map((year) => (
+                    <TableHead key={year} className="text-center">
+                      Year {year}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {equityPayouts.map((payout) => (
                   <TableRow key={payout.id}>
-                    <TableCell className="font-medium">{payout.description}</TableCell>
-                    {years.map(year => (
+                    <TableCell className="font-medium">
+                      {payout.description}
+                    </TableCell>
+                    {years.map((year) => (
                       <TableCell key={year} className="text-center p-1">
                         {payout.year === year ? (
                           <EditableCell
@@ -307,10 +392,17 @@ export const DataTable: React.FC<DataTableProps> = ({
                             year={year}
                             type="equity"
                             field="amount"
-                            isEdited={getEditedValue(payout.id, year, 'equity', 'amount') !== null}
+                            isEdited={
+                              getEditedValue(
+                                payout.id,
+                                year,
+                                "equity",
+                                "amount",
+                              ) !== null
+                            }
                           />
                         ) : (
-                          '-'
+                          "-"
                         )}
                       </TableCell>
                     ))}
@@ -326,7 +418,9 @@ export const DataTable: React.FC<DataTableProps> = ({
       {properties.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Real Estate Values by Year</CardTitle>
+            <CardTitle className="text-lg">
+              Real Estate Values by Year
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -334,8 +428,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <TableRow>
                   <TableHead>Property</TableHead>
                   <TableHead>Metric</TableHead>
-                  {years.map(year => (
-                    <TableHead key={year} className="text-center">Year {year}</TableHead>
+                  {years.map((year) => (
+                    <TableHead key={year} className="text-center">
+                      Year {year}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -343,9 +439,13 @@ export const DataTable: React.FC<DataTableProps> = ({
                 {properties.map((property) => (
                   <React.Fragment key={property.id}>
                     <TableRow>
-                      <TableCell className="font-medium" rowSpan={3}>{property.name}</TableCell>
-                      <TableCell className="text-green-700">Property Value</TableCell>
-                      {years.map(year => (
+                      <TableCell className="font-medium" rowSpan={3}>
+                        {property.name}
+                      </TableCell>
+                      <TableCell className="text-green-700">
+                        Property Value
+                      </TableCell>
+                      {years.map((year) => (
                         <TableCell key={year} className="text-center p-1">
                           {year >= property.purchaseYear ? (
                             <EditableCell
@@ -354,39 +454,62 @@ export const DataTable: React.FC<DataTableProps> = ({
                               year={year}
                               type="property-value"
                               field="value"
-                              isEdited={getEditedValue(property.id, year, 'property-value', 'value') !== null}
+                              isEdited={
+                                getEditedValue(
+                                  property.id,
+                                  year,
+                                  "property-value",
+                                  "value",
+                                ) !== null
+                              }
                             />
                           ) : (
-                            '-'
+                            "-"
                           )}
                         </TableCell>
                       ))}
                     </TableRow>
                     <TableRow>
-                      <TableCell className="text-red-700">Loan Balance</TableCell>
-                      {years.map(year => (
+                      <TableCell className="text-red-700">
+                        Loan Balance
+                      </TableCell>
+                      {years.map((year) => (
                         <TableCell key={year} className="text-center p-1">
                           {year >= property.purchaseYear ? (
                             <EditableCell
-                              value={getPropertyLoanBalanceByYear(property, year)}
+                              value={getPropertyLoanBalanceByYear(
+                                property,
+                                year,
+                              )}
                               id={property.id}
                               year={year}
                               type="property-loan"
                               field="balance"
-                              isEdited={getEditedValue(property.id, year, 'property-loan', 'balance') !== null}
+                              isEdited={
+                                getEditedValue(
+                                  property.id,
+                                  year,
+                                  "property-loan",
+                                  "balance",
+                                ) !== null
+                              }
                             />
                           ) : (
-                            '-'
+                            "-"
                           )}
                         </TableCell>
                       ))}
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-blue-700">Equity</TableCell>
-                      {years.map(year => (
+                      {years.map((year) => (
                         <TableCell key={year} className="text-center">
-                          {year >= property.purchaseYear ? 
-                            formatCurrency(getPropertyValueByYear(property, year) - getPropertyLoanBalanceByYear(property, year)) : '-'}
+                          {year >= property.purchaseYear
+                            ? formatCurrency(
+                                getPropertyValueByYear(property, year) -
+                                  getPropertyLoanBalanceByYear(property, year),
+                              )
+                            : "-"}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -408,21 +531,35 @@ export const DataTable: React.FC<DataTableProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>Metric</TableHead>
-                {years.map(year => (
-                  <TableHead key={year} className="text-center">Year {year}</TableHead>
+                {years.map((year) => (
+                  <TableHead key={year} className="text-center">
+                    Year {year}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {['grossIncome', 'taxes', 'netIncome', 'totalExpenses', 'savings', 'cumulativeWealth'].map(field => (
+              {[
+                "grossIncome",
+                "taxes",
+                "netIncome",
+                "totalExpenses",
+                "savings",
+                "cumulativeWealth",
+              ].map((field) => (
                 <TableRow key={field}>
                   <TableCell className="font-medium">
-                    {field === 'grossIncome' ? 'Gross Income' :
-                     field === 'taxes' ? 'Total Taxes' :
-                     field === 'netIncome' ? 'Net Income' :
-                     field === 'totalExpenses' ? 'Total Expenses' :
-                     field === 'savings' ? 'Annual Savings' :
-                     'Cumulative Wealth'}
+                    {field === "grossIncome"
+                      ? "Gross Income"
+                      : field === "taxes"
+                        ? "Total Taxes"
+                        : field === "netIncome"
+                          ? "Net Income"
+                          : field === "totalExpenses"
+                            ? "Total Expenses"
+                            : field === "savings"
+                              ? "Annual Savings"
+                              : "Cumulative Wealth"}
                   </TableCell>
                   {projections.map((projection, index) => (
                     <TableCell key={index} className="text-center p-1">
@@ -432,7 +569,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                         year={projection.year}
                         type="projection"
                         field={field}
-                        isEdited={getEditedValue('projection', projection.year, 'projection', field) !== null}
+                        isEdited={
+                          getEditedValue(
+                            "projection",
+                            projection.year,
+                            "projection",
+                            field,
+                          ) !== null
+                        }
                       />
                     </TableCell>
                   ))}

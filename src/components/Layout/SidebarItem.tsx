@@ -15,7 +15,9 @@ export default function SidebarItem({ to, icon, label }: Props) {
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors group hover:bg-white/10 ${
-          isActive ? "font-bold border-l-4 border-indigo-500 bg-white/10" : "text-white/80"
+          isActive
+            ? "font-bold border-l-4 border-indigo-500 bg-white/10"
+            : "text-white/80"
         }`
       }
     >

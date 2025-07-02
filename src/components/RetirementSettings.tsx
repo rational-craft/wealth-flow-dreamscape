@@ -1,9 +1,8 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface RetirementSettingsProps {
   retirementAge: number;
@@ -20,12 +19,14 @@ export const RetirementSettings: React.FC<RetirementSettingsProps> = ({
   withdrawalRate,
   setWithdrawalRate,
   enableRetirementMode,
-  setEnableRetirementMode
+  setEnableRetirementMode,
 }) => {
   return (
     <Card className="border-purple-200">
       <CardHeader>
-        <CardTitle className="text-lg text-purple-700">Retirement Planning</CardTitle>
+        <CardTitle className="text-lg text-purple-700">
+          Retirement Planning
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -37,7 +38,7 @@ export const RetirementSettings: React.FC<RetirementSettingsProps> = ({
             />
             <Label htmlFor="retirementMode">Enable Retirement Mode</Label>
           </div>
-          
+
           {enableRetirementMode && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -52,7 +53,9 @@ export const RetirementSettings: React.FC<RetirementSettingsProps> = ({
                 />
               </div>
               <div>
-                <Label htmlFor="withdrawalRate">Annual Withdrawal Rate (%)</Label>
+                <Label htmlFor="withdrawalRate">
+                  Annual Withdrawal Rate (%)
+                </Label>
                 <Input
                   id="withdrawalRate"
                   type="number"
@@ -65,10 +68,14 @@ export const RetirementSettings: React.FC<RetirementSettingsProps> = ({
               </div>
             </div>
           )}
-          
+
           {enableRetirementMode && (
             <div className="text-sm text-purple-600 bg-purple-50 p-3 rounded-lg">
-              <p><strong>Retirement Mode:</strong> After age {retirementAge}, income will stop and you'll withdraw {withdrawalRate}% of your wealth annually.</p>
+              <p>
+                <strong>Retirement Mode:</strong> After age {retirementAge},
+                income will stop and you'll withdraw {withdrawalRate}% of your
+                wealth annually.
+              </p>
             </div>
           )}
         </div>

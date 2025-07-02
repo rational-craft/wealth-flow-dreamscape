@@ -1,13 +1,24 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Scenario, scenarioService } from '@/services/ScenarioService';
-import { Plus, Copy, Trash } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Scenario, scenarioService } from "@/services/ScenarioService";
+import { Plus, Copy, Trash } from "lucide-react";
 
 interface ScenarioManagerProps {
   currentScenarioId: string;
@@ -18,18 +29,23 @@ interface ScenarioManagerProps {
 export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
   currentScenarioId,
   onScenarioChange,
-  onScenarioUpdate
+  onScenarioUpdate,
 }) => {
-  const [scenarios, setScenarios] = useState<Scenario[]>(scenarioService.getAllScenarios());
-  const [newScenarioName, setNewScenarioName] = useState('');
+  const [scenarios, setScenarios] = useState<Scenario[]>(
+    scenarioService.getAllScenarios(),
+  );
+  const [newScenarioName, setNewScenarioName] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedBaseScenario, setSelectedBaseScenario] = useState('base');
+  const [selectedBaseScenario, setSelectedBaseScenario] = useState("base");
 
   const handleCreateScenario = () => {
     if (newScenarioName.trim()) {
-      const newId = scenarioService.createScenario(newScenarioName, selectedBaseScenario);
+      const newId = scenarioService.createScenario(
+        newScenarioName,
+        selectedBaseScenario,
+      );
       setScenarios(scenarioService.getAllScenarios());
-      setNewScenarioName('');
+      setNewScenarioName("");
       setIsCreateDialogOpen(false);
       onScenarioChange(newId);
     }
@@ -39,11 +55,11 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
     scenarioService.deleteScenario(scenarioId);
     setScenarios(scenarioService.getAllScenarios());
     if (currentScenarioId === scenarioId) {
-      onScenarioChange('base');
+      onScenarioChange("base");
     }
   };
 
-  const currentScenario = scenarios.find(s => s.id === currentScenarioId);
+  const currentScenario = scenarios.find((s) => s.id === currentScenarioId);
 
   return (
     <div className="flex items-center gap-4 mb-6">
@@ -54,11 +70,15 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {scenarios.map(scenario => (
+            {scenarios.map((scenario) => (
               <SelectItem key={scenario.id} value={scenario.id}>
                 <div className="flex items-center gap-2">
                   {scenario.name}
-                  {scenario.isDefault && <Badge variant="secondary" className="text-xs">Default</Badge>}
+                  {scenario.isDefault && (
+                    <Badge variant="secondary" className="text-xs">
+                      Default
+                    </Badge>
+                  )}
                 </div>
               </SelectItem>
             ))}
@@ -68,7 +88,11 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             New Scenario
           </Button>
@@ -87,13 +111,18 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Base on Existing Scenario</label>
-              <Select value={selectedBaseScenario} onValueChange={setSelectedBaseScenario}>
+              <label className="text-sm font-medium">
+                Base on Existing Scenario
+              </label>
+              <Select
+                value={selectedBaseScenario}
+                onValueChange={setSelectedBaseScenario}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {scenarios.map(scenario => (
+                  {scenarios.map((scenario) => (
                     <SelectItem key={scenario.id} value={scenario.id}>
                       {scenario.name}
                     </SelectItem>
@@ -105,7 +134,10 @@ export const ScenarioManager: React.FC<ScenarioManagerProps> = ({
               <Button onClick={handleCreateScenario} className="flex-1">
                 Create Scenario
               </Button>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
                 Cancel
               </Button>
             </div>

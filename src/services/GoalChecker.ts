@@ -1,5 +1,4 @@
-
-export type GoalType = 'netWorth' | 'savingsRate' | 'debtBalance';
+export type GoalType = "netWorth" | "savingsRate" | "debtBalance";
 
 export interface Goal {
   id: string;
@@ -29,15 +28,15 @@ export class GoalChecker {
     this.onGoalAchieved = callback;
   }
 
-  addGoal(goal: Omit<Goal, 'id' | 'achieved' | 'createdAt'>): string {
+  addGoal(goal: Omit<Goal, "id" | "achieved" | "createdAt">): string {
     const id = `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newGoal: Goal = {
       ...goal,
       id,
       achieved: false,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
-    
+
     this.goals.set(id, newGoal);
     return id;
   }
@@ -58,22 +57,22 @@ export class GoalChecker {
   }
 
   checkGoals(netWorth: number, savingsRate: number, totalDebt: number) {
-    this.goals.forEach(goal => {
+    this.goals.forEach((goal) => {
       if (goal.achieved) return;
 
       let isAchieved = false;
       let currentValue = 0;
 
       switch (goal.type) {
-        case 'netWorth':
+        case "netWorth":
           currentValue = netWorth;
           isAchieved = netWorth >= goal.targetValue;
           break;
-        case 'savingsRate':
+        case "savingsRate":
           currentValue = savingsRate;
           isAchieved = savingsRate >= goal.targetValue;
           break;
-        case 'debtBalance':
+        case "debtBalance":
           currentValue = totalDebt;
           isAchieved = totalDebt <= goal.targetValue;
           break;
@@ -84,16 +83,16 @@ export class GoalChecker {
       if (isAchieved && !goal.achieved) {
         goal.achieved = true;
         goal.achievedDate = new Date();
-        
+
         const alert: GoalAlert = {
           goalId: goal.id,
           goalName: goal.name,
           message: `Congratulations! You've achieved your goal: ${goal.name}`,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
-        
+
         this.alerts.push(alert);
-        
+
         if (this.onGoalAchieved) {
           this.onGoalAchieved(goal);
         }
@@ -108,7 +107,7 @@ export class GoalChecker {
   }
 
   clearAlert(goalId: string) {
-    this.alerts = this.alerts.filter(alert => alert.goalId !== goalId);
+    this.alerts = this.alerts.filter((alert) => alert.goalId !== goalId);
   }
 }
 

@@ -1,9 +1,20 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { FIELDS, OPERATORS, FieldType, FieldDefinition } from "@/utils/fieldSchema";
-import { suggestFields, suggestOperators, suggestValues, toLogicJSON, parseLogic, toLogicText } from "@/utils/suggestLogic";
+import {
+  FIELDS,
+  OPERATORS,
+  FieldType,
+  FieldDefinition,
+} from "@/utils/fieldSchema";
+import {
+  suggestFields,
+  suggestOperators,
+  suggestValues,
+  toLogicJSON,
+  parseLogic,
+  toLogicText,
+} from "@/utils/suggestLogic";
 import { LogicOutput } from "./LogicOutput";
 import { Search, Check, X } from "lucide-react";
 
@@ -11,10 +22,14 @@ interface ConditionalLogicChatProps {
   onLogicSubmit?: (logicJSON: any) => void;
 }
 
-export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLogicSubmit }) => {
+export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({
+  onLogicSubmit,
+}) => {
   const [userInput, setUserInput] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [step, setStep] = useState<"field"|"operator"|"value"|"logic">("field");
+  const [step, setStep] = useState<"field" | "operator" | "value" | "logic">(
+    "field",
+  );
   const [field, setField] = useState<FieldDefinition | null>(null);
   const [operator, setOperator] = useState<string | null>(null);
   const [value, setValue] = useState<string | null>(null);
@@ -25,7 +40,7 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
   // Real-time suggestions depending on step
   useEffect(() => {
     if (step === "field") {
-      setSuggestions(suggestFields(userInput).map(f => f.label));
+      setSuggestions(suggestFields(userInput).map((f) => f.label));
     } else if (step === "operator" && field) {
       setSuggestions(suggestOperators(field.type, userInput));
     } else if (step === "value" && field && operator) {
@@ -40,13 +55,19 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
   // Reset subsequent steps if backing up
   useEffect(() => {
     if (step === "field") {
-      setField(null); setOperator(null); setValue(null); setError(null);
+      setField(null);
+      setOperator(null);
+      setValue(null);
+      setError(null);
     }
     if (step === "operator") {
-      setOperator(null); setValue(null); setError(null);
+      setOperator(null);
+      setValue(null);
+      setError(null);
     }
     if (step === "value") {
-      setValue(null); setError(null);
+      setValue(null);
+      setError(null);
     }
   }, [step]);
 
@@ -54,7 +75,10 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
   const advance = (suggestion?: string) => {
     setError(null);
     if (step === "field") {
-      const f = FIELDS.find(x => x.label.toLowerCase() === (suggestion||userInput).toLowerCase());
+      const f = FIELDS.find(
+        (x) =>
+          x.label.toLowerCase() === (suggestion || userInput).toLowerCase(),
+      );
       if (f) {
         setField(f);
         setUserInput("");
@@ -63,7 +87,9 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
         setError("Please select a valid field");
       }
     } else if (step === "operator" && field) {
-      const op = OPERATORS[field.type].find(x => x.toLowerCase() === (suggestion||userInput).toLowerCase());
+      const op = OPERATORS[field.type].find(
+        (x) => x.toLowerCase() === (suggestion || userInput).toLowerCase(),
+      );
       if (op) {
         setOperator(op);
         setUserInput("");
@@ -73,7 +99,10 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
       }
     } else if (step === "value" && field && operator) {
       const v = suggestion ?? userInput;
-      if (v.trim().length === 0) { setError("Please provide a value"); return; }
+      if (v.trim().length === 0) {
+        setError("Please provide a value");
+        return;
+      }
       setValue(v);
       // On success, append to logic chain
       setLogic([...logic, `${field.label} ${operator} ${v}`]);
@@ -93,15 +122,17 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
 
   // Allow editing/cancelling latest
   const undo = () => {
-    if (step === "logic" && logic.length > 0) { // Delete last condition+logic
-      let temp = logic.slice(); temp.pop();
+    if (step === "logic" && logic.length > 0) {
+      // Delete last condition+logic
+      let temp = logic.slice();
+      temp.pop();
       setLogic(temp);
       setStep("field");
-    }
-    else if (step === "value" && operator) setStep("operator");
+    } else if (step === "value" && operator) setStep("operator");
     else if (step === "operator" && field) setStep("field");
     else if (step === "field" && logic.length > 0) {
-      let temp = logic.slice(); temp.pop();
+      let temp = logic.slice();
+      temp.pop();
       setLogic(temp);
       setStep("field");
     }
@@ -112,19 +143,19 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
     if ((e.key === "Enter" || e.key === "Tab") && suggestions.length > 0) {
       advance(suggestions[0]);
       e.preventDefault();
-    }
-    else if (e.key === "Enter" && userInput.length > 0) {
+    } else if (e.key === "Enter" && userInput.length > 0) {
       advance();
       e.preventDefault();
-    }
-    else if (e.key === "Escape") {
+    } else if (e.key === "Escape") {
       undo();
       e.preventDefault();
     }
   };
 
   // For accessibility, focus input on every step advance
-  useEffect(() => { inputRef.current?.focus(); }, [step]);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [step]);
 
   // The full, chained expression for output
   const logicText = logic.join(" ");
@@ -146,7 +177,10 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
         Build Conditional Logic
       </div>
       <div className="mt-1 text-gray-700 text-base">
-        Type conditions step-by-step: <span className="italic">If [Field] [Operator] [Value]</span>, then chain with <span className="italic">AND</span> or <span className="italic">OR</span>.
+        Type conditions step-by-step:{" "}
+        <span className="italic">If [Field] [Operator] [Value]</span>, then
+        chain with <span className="italic">AND</span> or{" "}
+        <span className="italic">OR</span>.
       </div>
       <div className="flex gap-2 items-center">
         <Input
@@ -154,15 +188,15 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
           value={userInput}
           placeholder={
             step === "field"
-              ? "Start typing a field name..." :
-            step === "operator"
-              ? "Choose an operator..." :
-            step === "value"
-              ? "Type a value..." :
-            "Type AND or OR to add another condition"
+              ? "Start typing a field name..."
+              : step === "operator"
+                ? "Choose an operator..."
+                : step === "value"
+                  ? "Type a value..."
+                  : "Type AND or OR to add another condition"
           }
           className="flex-1"
-          onChange={e => setUserInput(e.target.value)}
+          onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKey}
           aria-label="conditional-logic-input"
         />
@@ -206,7 +240,8 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
         {logic.map((text, i) => (
           <div
             key={i}
-            className={`rounded px-3 py-2 bg-slate-100 flex items-center ${text === "AND" || text === "OR" ? "bg-yellow-100 font-bold text-yellow-800 justify-center" : "border-l-4 border-blue-300"}`}>
+            className={`rounded px-3 py-2 bg-slate-100 flex items-center ${text === "AND" || text === "OR" ? "bg-yellow-100 font-bold text-yellow-800 justify-center" : "border-l-4 border-blue-300"}`}
+          >
             {text}
           </div>
         ))}
@@ -230,4 +265,3 @@ export const ConditionalLogicChat: React.FC<ConditionalLogicChatProps> = ({ onLo
     </Card>
   );
 };
-

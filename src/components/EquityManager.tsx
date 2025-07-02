@@ -1,23 +1,33 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { EquityPayout } from '@/pages/Index';
-import { Plus, Trash2, TrendingUp } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EquityPayout } from "@/pages/Index";
+import { Plus, Trash2, TrendingUp } from "lucide-react";
 
 interface EquityManagerProps {
   equityPayouts: EquityPayout[];
   setEquityPayouts: (payouts: EquityPayout[]) => void;
 }
 
-export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, setEquityPayouts }) => {
+export const EquityManager: React.FC<EquityManagerProps> = ({
+  equityPayouts,
+  setEquityPayouts,
+}) => {
   const [newPayout, setNewPayout] = useState<Partial<EquityPayout>>({
-    description: '',
+    description: "",
     amount: 0,
     year: 1,
-    taxRate: 20
+    taxRate: 20,
   });
 
   const addPayout = () => {
@@ -27,32 +37,34 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
         description: newPayout.description,
         amount: newPayout.amount,
         year: newPayout.year,
-        taxRate: newPayout.taxRate || 20
+        taxRate: newPayout.taxRate || 20,
       };
       setEquityPayouts([...equityPayouts, payout]);
       setNewPayout({
-        description: '',
+        description: "",
         amount: 0,
         year: 1,
-        taxRate: 20
+        taxRate: 20,
       });
     }
   };
 
   const updatePayout = (id: string, updates: Partial<EquityPayout>) => {
-    setEquityPayouts(equityPayouts.map(payout => 
-      payout.id === id ? { ...payout, ...updates } : payout
-    ));
+    setEquityPayouts(
+      equityPayouts.map((payout) =>
+        payout.id === id ? { ...payout, ...updates } : payout,
+      ),
+    );
   };
 
   const removePayout = (id: string) => {
-    setEquityPayouts(equityPayouts.filter(payout => payout.id !== id));
+    setEquityPayouts(equityPayouts.filter((payout) => payout.id !== id));
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -62,13 +74,17 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <TrendingUp className="text-purple-600" />
-        <h3 className="text-xl font-semibold text-slate-800">One-Time Equity Payouts</h3>
+        <h3 className="text-xl font-semibold text-slate-800">
+          One-Time Equity Payouts
+        </h3>
       </div>
 
       {/* Add New Payout Form */}
       <Card className="border-purple-200 bg-purple-50">
         <CardHeader>
-          <CardTitle className="text-lg text-purple-800">Add New Equity Payout</CardTitle>
+          <CardTitle className="text-lg text-purple-800">
+            Add New Equity Payout
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -77,7 +93,9 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
               <Input
                 id="payout-description"
                 value={newPayout.description}
-                onChange={(e) => setNewPayout({ ...newPayout, description: e.target.value })}
+                onChange={(e) =>
+                  setNewPayout({ ...newPayout, description: e.target.value })
+                }
                 placeholder="e.g., Stock Option Exercise, IPO Payout"
               />
             </div>
@@ -88,7 +106,9 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                 id="payout-amount"
                 type="number"
                 value={newPayout.amount}
-                onChange={(e) => setNewPayout({ ...newPayout, amount: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewPayout({ ...newPayout, amount: Number(e.target.value) })
+                }
                 placeholder="0"
               />
             </div>
@@ -101,7 +121,9 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                 min="1"
                 max="50"
                 value={newPayout.year}
-                onChange={(e) => setNewPayout({ ...newPayout, year: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewPayout({ ...newPayout, year: Number(e.target.value) })
+                }
                 placeholder="1"
               />
             </div>
@@ -113,13 +135,21 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                 type="number"
                 step="0.1"
                 value={newPayout.taxRate}
-                onChange={(e) => setNewPayout({ ...newPayout, taxRate: Number(e.target.value) })}
+                onChange={(e) =>
+                  setNewPayout({
+                    ...newPayout,
+                    taxRate: Number(e.target.value),
+                  })
+                }
                 placeholder="20"
               />
             </div>
           </div>
 
-          <Button onClick={addPayout} className="w-full bg-purple-600 hover:bg-purple-700">
+          <Button
+            onClick={addPayout}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add Equity Payout
           </Button>
@@ -150,7 +180,11 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                     <TableCell>
                       <Input
                         value={payout.description}
-                        onChange={(e) => updatePayout(payout.id, { description: e.target.value })}
+                        onChange={(e) =>
+                          updatePayout(payout.id, {
+                            description: e.target.value,
+                          })
+                        }
                         className="min-w-[150px]"
                       />
                     </TableCell>
@@ -158,7 +192,11 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                       <Input
                         type="number"
                         value={payout.amount}
-                        onChange={(e) => updatePayout(payout.id, { amount: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updatePayout(payout.id, {
+                            amount: Number(e.target.value),
+                          })
+                        }
                         className="min-w-[120px]"
                       />
                     </TableCell>
@@ -168,7 +206,11 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                         min="1"
                         max="50"
                         value={payout.year}
-                        onChange={(e) => updatePayout(payout.id, { year: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updatePayout(payout.id, {
+                            year: Number(e.target.value),
+                          })
+                        }
                         className="min-w-[80px]"
                       />
                     </TableCell>
@@ -177,12 +219,18 @@ export const EquityManager: React.FC<EquityManagerProps> = ({ equityPayouts, set
                         type="number"
                         step="0.1"
                         value={payout.taxRate}
-                        onChange={(e) => updatePayout(payout.id, { taxRate: Number(e.target.value) })}
+                        onChange={(e) =>
+                          updatePayout(payout.id, {
+                            taxRate: Number(e.target.value),
+                          })
+                        }
                         className="min-w-[80px]"
                       />
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(payout.amount * (1 - payout.taxRate / 100))}
+                      {formatCurrency(
+                        payout.amount * (1 - payout.taxRate / 100),
+                      )}
                     </TableCell>
                     <TableCell>
                       <Button

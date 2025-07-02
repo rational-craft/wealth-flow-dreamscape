@@ -356,8 +356,9 @@ const Index = () => {
     let liquidWealth = initialWealth;
     let cumulativeWealth = initialWealth;
     const allExpenses = getAllExpenses();
-    const ledger: Record<string, { prevValue: number; prevBalance: number }> = {};
-    properties.forEach(p => {
+    const ledger: Record<string, { prevValue: number; prevBalance: number }> =
+      {};
+    properties.forEach((p) => {
       ledger[p.id] = { prevValue: p.purchasePrice, prevBalance: p.loanAmount };
     });
 
@@ -452,15 +453,33 @@ const Index = () => {
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
-codex/fix-net-worth-drift-caused-by-real-estate-module
-          const monthlyPayment = property.loanAmount > 0 ?
-            (property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-              (Math.pow(1 + monthlyRate, numPayments) - 1) : 0;
-          const yearlyPayment = monthsOwned < numPayments ? monthlyPayment * 12 : 0;
+          codex / fix -
+            net -
+            worth -
+            drift -
+            caused -
+            by -
+            real -
+            estate -
+            module;
+          const monthlyPayment =
+            property.loanAmount > 0
+              ? (property.loanAmount *
+                  (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+                (Math.pow(1 + monthlyRate, numPayments) - 1)
+              : 0;
+          const yearlyPayment =
+            monthsOwned < numPayments ? monthlyPayment * 12 : 0;
 
           const startBalance = ledger[id]?.prevBalance ?? property.loanAmount;
-          const remainingBalance = monthsOwned < numPayments ?
-            Math.max(0, startBalance - (yearlyPayment - startBalance * monthlyRate * 12)) : 0;
+          const remainingBalance =
+            monthsOwned < numPayments
+              ? Math.max(
+                  0,
+                  startBalance -
+                    (yearlyPayment - startBalance * monthlyRate * 12),
+                )
+              : 0;
 
           const propertyTax = currentValue * (property.propertyTaxRate / 100);
           const maintenance = currentValue * (property.maintenanceRate / 100);
@@ -469,26 +488,27 @@ codex/fix-net-worth-drift-caused-by-real-estate-module
           // Mortgage + appreciation
           // --------------------------------------------------
           // yearly interest & principal split
-          const interest     = startBalance * monthlyRate * 12;
-          const principal    = yearlyPayment - interest;
+          const interest = startBalance * monthlyRate * 12;
+          const principal = yearlyPayment - interest;
 
           // cash-flow hit (interest + taxes + maintenance)
           const realEstateCash = interest + propertyTax + maintenance;
 
           // equity delta = principal + new appreciation only
-          const valueDelta      = currentValue - (ledger[id]?.prevValue ?? property.purchasePrice);
-          const equityDelta     = principal + valueDelta;
+          const valueDelta =
+            currentValue - (ledger[id]?.prevValue ?? property.purchasePrice);
+          const equityDelta = principal + valueDelta;
 
           // update running totals
-          totalExpenses    += realEstateCash;      // NOT principal
-          liquidWealth     -= principal;           // principal is asset transfer
+          totalExpenses += realEstateCash; // NOT principal
+          liquidWealth -= principal; // principal is asset transfer
           realEstateEquity += equityDelta;
           totalLoanBalance += remainingBalance;
 
           // advance ledger
           ledger[id] = {
-            prevValue:  currentValue,
-            prevBalance: remainingBalance
+            prevValue: currentValue,
+            prevBalance: remainingBalance,
           };
 
           if (monthsOwned < numPayments) {
@@ -509,7 +529,7 @@ codex/fix-net-worth-drift-caused-by-real-estate-module
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-main
+          main;
         }
       });
 
@@ -563,8 +583,9 @@ main
     let liquidWealth = s.initialWealth ?? 50000;
     let cumulativeWealth = liquidWealth;
     const projections: WealthProjection[] = [];
-    const ledger: Record<string, { prevValue: number; prevBalance: number }> = {};
-    (s.properties ?? []).forEach(p => {
+    const ledger: Record<string, { prevValue: number; prevBalance: number }> =
+      {};
+    (s.properties ?? []).forEach((p) => {
       ledger[p.id] = { prevValue: p.purchasePrice, prevBalance: p.loanAmount };
     });
     for (let year = 1; year <= (s.projectionYears ?? 10); year++) {
@@ -664,15 +685,33 @@ main
           const monthlyRate = property.interestRate / 100 / 12;
           const numPayments = property.loanTermYears * 12;
           const monthsOwned = (yearsOwned - 1) * 12;
-codex/fix-net-worth-drift-caused-by-real-estate-module
-          const monthlyPayment = property.loanAmount > 0 ?
-            (property.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-              (Math.pow(1 + monthlyRate, numPayments) - 1) : 0;
-          const yearlyPayment = monthsOwned < numPayments ? monthlyPayment * 12 : 0;
+          codex / fix -
+            net -
+            worth -
+            drift -
+            caused -
+            by -
+            real -
+            estate -
+            module;
+          const monthlyPayment =
+            property.loanAmount > 0
+              ? (property.loanAmount *
+                  (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
+                (Math.pow(1 + monthlyRate, numPayments) - 1)
+              : 0;
+          const yearlyPayment =
+            monthsOwned < numPayments ? monthlyPayment * 12 : 0;
 
           const startBalance = ledger[id]?.prevBalance ?? property.loanAmount;
-          const remainingBalance = monthsOwned < numPayments ?
-            Math.max(0, startBalance - (yearlyPayment - startBalance * monthlyRate * 12)) : 0;
+          const remainingBalance =
+            monthsOwned < numPayments
+              ? Math.max(
+                  0,
+                  startBalance -
+                    (yearlyPayment - startBalance * monthlyRate * 12),
+                )
+              : 0;
 
           const propertyTax = currentValue * (property.propertyTaxRate / 100);
           const maintenance = currentValue * (property.maintenanceRate / 100);
@@ -681,26 +720,27 @@ codex/fix-net-worth-drift-caused-by-real-estate-module
           // Mortgage + appreciation
           // --------------------------------------------------
           // yearly interest & principal split
-          const interest     = startBalance * monthlyRate * 12;
-          const principal    = yearlyPayment - interest;
+          const interest = startBalance * monthlyRate * 12;
+          const principal = yearlyPayment - interest;
 
           // cash-flow hit (interest + taxes + maintenance)
           const realEstateCash = interest + propertyTax + maintenance;
 
           // equity delta = principal + new appreciation only
-          const valueDelta      = currentValue - (ledger[id]?.prevValue ?? property.purchasePrice);
-          const equityDelta     = principal + valueDelta;
+          const valueDelta =
+            currentValue - (ledger[id]?.prevValue ?? property.purchasePrice);
+          const equityDelta = principal + valueDelta;
 
           // update running totals
-          totalExpenses    += realEstateCash;      // NOT principal
-          liquidWealth     -= principal;           // principal is asset transfer
+          totalExpenses += realEstateCash; // NOT principal
+          liquidWealth -= principal; // principal is asset transfer
           realEstateEquity += equityDelta;
           totalLoanBalance += remainingBalance;
 
           // advance ledger
           ledger[id] = {
-            prevValue:  currentValue,
-            prevBalance: remainingBalance
+            prevValue: currentValue,
+            prevBalance: remainingBalance,
           };
 
           if (monthsOwned < numPayments) {
@@ -721,7 +761,7 @@ codex/fix-net-worth-drift-caused-by-real-estate-module
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-main
+          main;
         }
       });
       let savings = netIncome - totalExpenses;

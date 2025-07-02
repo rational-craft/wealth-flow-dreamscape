@@ -40,7 +40,7 @@ export default function Sidebar() {
 
   const toggleAll = useCallback(
     (expand: boolean) => sections.forEach((fn) => fn(expand)),
-    [sections]
+    [sections],
   );
 
   const value: SidebarContextValue = {
@@ -67,7 +67,11 @@ export default function Sidebar() {
         </div>
         <nav className="flex-1 overflow-y-auto pb-2 space-y-2">
           <SidebarSection title="Models">
-            <SidebarItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" />
+            <SidebarItem
+              to="/dashboard"
+              icon={<LayoutDashboard />}
+              label="Dashboard"
+            />
           </SidebarSection>
           <SidebarSection title="Databases">
             <SidebarItem to="#" icon={<Database />} label="Data" />

@@ -3,7 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
-import { BASE_SUGGESTIONS, getContextSuggestions } from "@/utils/nlp/suggestions";
+import {
+  BASE_SUGGESTIONS,
+  getContextSuggestions,
+} from "@/utils/nlp/suggestions";
 import { extractSalaryInfo } from "@/utils/nlp/parsers";
 
 interface NLPChatBoxProps {
@@ -32,10 +35,12 @@ export const NLPChatBox: React.FC<NLPChatBoxProps> = ({ onAction }) => {
     if (lowered.includes("salary")) {
       const { salary, growthRate, year } = extractSalaryInfo(input);
       if (salary !== undefined) {
-        setMessage(`Set salary to $${salary}${growthRate !== undefined ? `, growth: ${growthRate}%` : ""}${year ? `, year: ${year}` : ""}`);
+        setMessage(
+          `Set salary to $${salary}${growthRate !== undefined ? `, growth: ${growthRate}%` : ""}${year ? `, year: ${year}` : ""}`,
+        );
         onAction({
           type: "set-salary",
-          data: { salary, growthRate, year }
+          data: { salary, growthRate, year },
         });
       } else {
         setMessage("Couldn't find a salary value!");
@@ -55,7 +60,9 @@ export const NLPChatBox: React.FC<NLPChatBoxProps> = ({ onAction }) => {
     <Card className="mb-6 p-4 flex flex-col gap-2 shadow-md border-blue-200 bg-white/70">
       <div className="flex items-center gap-2 mb-1">
         <Sparkles className="text-indigo-400" />
-        <span className="font-semibold text-lg text-slate-700">Ask AI to update your plan</span>
+        <span className="font-semibold text-lg text-slate-700">
+          Ask AI to update your plan
+        </span>
       </div>
       <form className="flex gap-2" onSubmit={handleSubmit} autoComplete="off">
         <Input
@@ -81,11 +88,7 @@ export const NLPChatBox: React.FC<NLPChatBoxProps> = ({ onAction }) => {
           ))}
         </div>
       )}
-      {message && (
-        <div className="mt-2 text-blue-700 text-sm">
-          {message}
-        </div>
-      )}
+      {message && <div className="mt-2 text-blue-700 text-sm">{message}</div>}
     </Card>
   );
 };

@@ -19,7 +19,7 @@ export interface Scenario {
 
 export class ScenarioService {
   private scenarios: Map<string, Scenario> = new Map();
-  private currentScenarioId: string = 'base';
+  private currentScenarioId: string = "base";
 
   constructor() {
     this.initializeDefaultScenarios();
@@ -27,8 +27,8 @@ export class ScenarioService {
 
   private initializeDefaultScenarios() {
     const baseScenario: Scenario = {
-      id: 'base',
-      name: 'Base Case',
+      id: "base",
+      name: "Base Case",
       isDefault: true,
       createdAt: new Date(),
       data: {
@@ -40,38 +40,38 @@ export class ScenarioService {
         initialWealth: 50000,
         investmentReturn: 7,
         projectionYears: 10,
-        state: 'California',
-        filingStatus: 'single'
-      }
+        state: "California",
+        filingStatus: "single",
+      },
     };
 
     const optimisticScenario: Scenario = {
-      id: 'optimistic',
-      name: 'Optimistic',
+      id: "optimistic",
+      name: "Optimistic",
       isDefault: false,
       createdAt: new Date(),
       data: {
         ...baseScenario.data,
         investmentReturn: 10,
-        debts: []
-      }
+        debts: [],
+      },
     };
 
     const bearScenario: Scenario = {
-      id: 'bear',
-      name: 'Bear Case',
+      id: "bear",
+      name: "Bear Case",
       isDefault: false,
       createdAt: new Date(),
       data: {
         ...baseScenario.data,
         investmentReturn: 4,
-        debts: []
-      }
+        debts: [],
+      },
     };
 
-    this.scenarios.set('base', baseScenario);
-    this.scenarios.set('optimistic', optimisticScenario);
-    this.scenarios.set('bear', bearScenario);
+    this.scenarios.set("base", baseScenario);
+    this.scenarios.set("optimistic", optimisticScenario);
+    this.scenarios.set("bear", bearScenario);
   }
 
   getCurrentScenario(): Scenario {
@@ -90,23 +90,23 @@ export class ScenarioService {
 
   createScenario(name: string, baseScenarioId?: string): string {
     const id = `scenario_${Date.now()}`;
-    const baseData = baseScenarioId ? 
-      this.scenarios.get(baseScenarioId)?.data : 
-      this.getCurrentScenario().data;
+    const baseData = baseScenarioId
+      ? this.scenarios.get(baseScenarioId)?.data
+      : this.getCurrentScenario().data;
 
     const newScenario: Scenario = {
       id,
       name,
       isDefault: false,
       createdAt: new Date(),
-      data: { ...baseData }
+      data: { ...baseData },
     };
 
     this.scenarios.set(id, newScenario);
     return id;
   }
 
-  updateScenario(id: string, data: Partial<Scenario['data']>) {
+  updateScenario(id: string, data: Partial<Scenario["data"]>) {
     const scenario = this.scenarios.get(id);
     if (scenario) {
       scenario.data = {
@@ -121,7 +121,7 @@ export class ScenarioService {
     if (!this.scenarios.get(id)?.isDefault) {
       this.scenarios.delete(id);
       if (this.currentScenarioId === id) {
-        this.currentScenarioId = 'base';
+        this.currentScenarioId = "base";
       }
     }
   }

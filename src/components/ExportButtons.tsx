@@ -1,16 +1,18 @@
-
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ExportService, ExportData } from '@/services/ExportService';
-import { Download, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { ExportService, ExportData } from "@/services/ExportService";
+import { Download, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ExportButtonsProps {
   data: ExportData;
   elementId?: string;
 }
 
-export const ExportButtons: React.FC<ExportButtonsProps> = ({ data, elementId }) => {
+export const ExportButtons: React.FC<ExportButtonsProps> = ({
+  data,
+  elementId,
+}) => {
   const { toast } = useToast();
 
   const handleCSVExport = () => {
@@ -56,12 +58,20 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ data, elementId })
 
   return (
     <div className="flex gap-2">
-      <Button variant="outline" onClick={handleCSVExport} className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        onClick={handleCSVExport}
+        className="flex items-center gap-2"
+      >
         <Download className="w-4 h-4" />
         Export CSV
       </Button>
       {elementId && (
-        <Button variant="outline" onClick={handlePDFExport} className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={handlePDFExport}
+          className="flex items-center gap-2"
+        >
           <FileText className="w-4 h-4" />
           Export PDF
         </Button>

@@ -139,7 +139,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({
               <Label htmlFor="expense-frequency">Frequency</Label>
               <Select
                 value={newExpense.frequency}
-                onValueChange={(value: any) =>
+                onValueChange={(value: string) =>
                   setNewExpense({ ...newExpense, frequency: value })
                 }
               >
@@ -232,7 +232,7 @@ export const ExpenseManager: React.FC<ExpenseManagerProps> = ({
                   <Label>Frequency</Label>
                   <Select
                     value={expense.frequency}
-                    onValueChange={(value: any) =>
+                    onValueChange={(value: string) =>
                       updateExpense(expense.id, { frequency: value })
                     }
                   >

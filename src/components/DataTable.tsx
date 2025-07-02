@@ -78,7 +78,13 @@ export const DataTable: React.FC<DataTableProps> = ({
   };
 
   const updateEditedValue = useCallback(
-    (id: string, year: number, type: string, field: string, value: number) => {
+    (
+      id: string,
+      year: number,
+      type: EditedValue["type"],
+      field: string,
+      value: number,
+    ) => {
       setEditedValues((prev) => {
         const existing = prev.findIndex(
           (e) =>
@@ -90,11 +96,10 @@ export const DataTable: React.FC<DataTableProps> = ({
 
         if (existing >= 0) {
           const updated = [...prev];
-          updated[existing] = { id, year, type: type as any, field, value };
+          updated[existing] = { id, year, type, field, value };
           return updated;
-        } else {
-          return [...prev, { id, year, type: type as any, field, value }];
         }
+        return [...prev, { id, year, type, field, value }];
       });
     },
     [],
@@ -177,7 +182,7 @@ export const DataTable: React.FC<DataTableProps> = ({
     );
     if (editedValue !== null) return editedValue;
 
-    return (projection as any)[field];
+    return projection[field as keyof WealthProjection] as number;
   };
 
   const EditableCell: React.FC<{

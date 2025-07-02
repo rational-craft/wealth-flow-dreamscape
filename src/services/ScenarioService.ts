@@ -1,14 +1,22 @@
+import {
+  IncomeSource,
+  ExpenseCategory,
+  EquityPayout,
+  RealEstateProperty,
+} from "@/pages/Index";
+import { Debt } from "./DebtOptimizer";
+
 export interface Scenario {
   id: string;
   name: string;
   isDefault: boolean;
   createdAt: Date;
   data: {
-    incomes: any[];
-    expenses: any[];
-    equityPayouts: any[];
-    properties: any[];
-    debts: any[];
+    incomes: IncomeSource[];
+    expenses: ExpenseCategory[];
+    equityPayouts: EquityPayout[];
+    properties: RealEstateProperty[];
+    debts: Debt[];
     initialWealth: number;
     investmentReturn: number;
     projectionYears: number;

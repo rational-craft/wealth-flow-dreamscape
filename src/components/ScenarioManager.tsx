@@ -23,7 +23,10 @@ import { Plus, Copy, Trash } from "lucide-react";
 interface ScenarioManagerProps {
   currentScenarioId: string;
   onScenarioChange: (scenarioId: string) => void;
-  onScenarioUpdate: (scenarioId: string, data: any) => void;
+  onScenarioUpdate: (
+    scenarioId: string,
+    data: Partial<Scenario["data"]>,
+  ) => void;
 }
 
 export const ScenarioManager: React.FC<ScenarioManagerProps> = ({

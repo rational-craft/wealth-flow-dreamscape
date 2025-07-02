@@ -9,8 +9,13 @@ import {
 } from "@/utils/nlp/suggestions";
 import { extractSalaryInfo } from "@/utils/nlp/parsers";
 
+interface NLPAction {
+  type: string;
+  data: Record<string, unknown>;
+}
+
 interface NLPChatBoxProps {
-  onAction: (action: { type: string; data: any }) => void;
+  onAction: (action: NLPAction) => void;
 }
 
 export const NLPChatBox: React.FC<NLPChatBoxProps> = ({ onAction }) => {

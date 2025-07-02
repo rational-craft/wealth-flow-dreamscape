@@ -6,6 +6,11 @@ import {
   MOCK_VALUES,
 } from "./fieldSchema";
 
+export type LogicToken =
+  | { field?: string; operator?: string; value?: string; error?: string }
+  | "AND"
+  | "OR";
+
 /**
  * Returns field suggestions matching the current user input.
  */
@@ -81,8 +86,8 @@ export function parseCondition(tokens: string[]): {
 export function parseLogic(input: string) {
   // Split on ' AND ' and ' OR ', keep the logical chain
   const tokens = input.split(/\s(AND|OR)\s/);
-  let conditions = [];
-  let logic: ("AND" | "OR")[] = [];
+  const conditions = [];
+  const logic: ("AND" | "OR")[] = [];
 
   for (let i = 0; i < tokens.length; i++) {
     if (i % 2 === 0) {
@@ -104,8 +109,8 @@ export function parseLogic(input: string) {
  *   { field: "amount", operator: ">=", value: "100" }
  * ]
  */
-export function toLogicJSON(parsed: ReturnType<typeof parseLogic>) {
-  const out: any[] = [];
+export function toLogicJSON(parsed: ReturnType<typeof parseLogic>): LogicToken[] {
+  const out: LogicToken[] = [];
   parsed.conditions.forEach((cond, idx) => {
     if (!cond.error && cond.field) {
       out.push({

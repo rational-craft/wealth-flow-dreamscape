@@ -78,6 +78,7 @@ export interface WealthProjection {
   netIncome: number;
   totalExpenses: number;
   savings: number;
+  liquidWealth: number;
   cumulativeWealth: number;
   taxes: number;
   realEstateValue: number;
@@ -405,6 +406,7 @@ const Index = () => {
         netIncome,
         totalExpenses,
         savings,
+        liquidWealth,
         cumulativeWealth,
         taxes,
         realEstateValue,
@@ -529,6 +531,7 @@ const Index = () => {
         netIncome,
         totalExpenses,
         savings,
+        liquidWealth,
         cumulativeWealth,
         taxes,
         realEstateValue,

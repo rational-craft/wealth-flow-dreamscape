@@ -42,7 +42,6 @@ export const SummaryDashboard: React.FC<Props> = ({
 }) => {
   // INCOME: group by year/type
   const annualIncomeByType: Record<string, number[]> = {};
-  const incomeTypes: Record<string, string> = {};
   const years = Array.from({ length: projectionYears }, (_, i) => i + 1);
 
   incomes.forEach((inc) => {
@@ -52,7 +51,6 @@ export const SummaryDashboard: React.FC<Props> = ({
         ? `RSU: ${inc.name} [Grant ${inc.vestingStartYear}]`
         : inc.name;
     if (!annualIncomeByType[key]) annualIncomeByType[key] = Array(projectionYears).fill(0);
-    incomeTypes[key] = inc.type;
 
     if (inc.type === "rsu" && inc.vestingStartYear && inc.vestingLength) {
       // Split into traunches per vesting rule

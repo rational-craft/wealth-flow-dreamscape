@@ -42,7 +42,6 @@ export const SummaryDashboard: React.FC<Props> = ({
 }) => {
   // INCOME: group by year/type
   const annualIncomeByType: Record<string, number[]> = {};
-  const incomeTypes: Record<string, string> = {};
   const years = Array.from({ length: projectionYears }, (_, i) => i + 1);
 
   incomes.forEach((inc) => {
@@ -52,7 +51,6 @@ export const SummaryDashboard: React.FC<Props> = ({
         ? `RSU: ${inc.name} [Grant ${inc.vestingStartYear}]`
         : inc.name;
     if (!annualIncomeByType[key]) annualIncomeByType[key] = Array(projectionYears).fill(0);
-    incomeTypes[key] = inc.type;
 
     if (inc.type === "rsu" && inc.vestingStartYear && inc.vestingLength) {
       // Split into traunches per vesting rule
@@ -99,7 +97,12 @@ export const SummaryDashboard: React.FC<Props> = ({
   // REAL ESTATE & DEBT
   const realEstateValueByYear = projections.map((p) => p.realEstateValue);
   const loanBalanceByYear = projections.map((p) => p.loanBalance);
-  const realEstateEquityByYear = projections.map((p) => p.realEateEquity);
+  const realEstateEquityByYear = projections.map((p) => p.realEstateEquity);
+
+  // Only use the final year's values when showing summaries
+  const latestRealEstateValue = realEstateValueByYear[realEstateValueByYear.length - 1] || 0;
+  const latestLoanBalance = loanBalanceByYear[loanBalanceByYear.length - 1] || 0;
+  const latestRealEstateEquity = realEstateEquityByYear[realEstateEquityByYear.length - 1] || 0;
 
   // Use only the most recent projection when summarizing real estate values
   const lastProjection = projections.at(-1);

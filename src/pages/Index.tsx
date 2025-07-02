@@ -81,7 +81,7 @@ export interface WealthProjection {
   cumulativeWealth: number;
   taxes: number;
   realEstateValue: number;
-  realEateEquity: number;
+  realEstateEquity: number;
   loanBalance: number;
 }
 
@@ -404,7 +404,7 @@ const Index = () => {
         cumulativeWealth,
         taxes,
         realEstateValue,
-        realEateEquity: realEstateEquity,
+        realEstateEquity: realEstateEquity,
         loanBalance: totalLoanBalance
       });
     }
@@ -524,7 +524,7 @@ const Index = () => {
         cumulativeWealth,
         taxes,
         realEstateValue,
-        realEateEquity: realEstateEquity,
+        realEstateEquity: realEstateEquity,
         loanBalance: totalLoanBalance,
       });
     }

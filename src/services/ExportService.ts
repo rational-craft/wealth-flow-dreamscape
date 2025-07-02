@@ -27,7 +27,11 @@ export class ExportService {
       'Cumulative Wealth': projection.cumulativeWealth,
       'Taxes Paid': projection.taxes,
       'Real Estate Value': projection.realEstateValue,
+ktyn90-codex/update-real-estate-value-logic
       'Real Estate Equity': projection.realEateEquity,
+
+      'Real Estate Equity': projection.realEstateEquity,
+main
       'Loan Balance': projection.loanBalance
     }));
     

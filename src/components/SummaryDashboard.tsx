@@ -104,6 +104,12 @@ export const SummaryDashboard: React.FC<Props> = ({
   const latestLoanBalance = loanBalanceByYear[loanBalanceByYear.length - 1] || 0;
   const latestRealEstateEquity = realEstateEquityByYear[realEstateEquityByYear.length - 1] || 0;
 
+  // Use only the most recent projection when summarizing real estate values
+  const lastProjection = projections.at(-1);
+  const latestRealEstateValue = lastProjection?.realEstateValue ?? 0;
+  const latestLoanBalance = lastProjection?.loanBalance ?? 0;
+  const latestRealEstateEquity = lastProjection?.realEateEquity ?? 0;
+
   // NET WORTH
   const netWorthByYear = projections.map((p) => p.cumulativeWealth);
 

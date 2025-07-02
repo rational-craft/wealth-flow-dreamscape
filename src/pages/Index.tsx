@@ -303,6 +303,7 @@ const Index = () => {
   // Updated projection calculations
   const calculateProjections = (): WealthProjection[] => {
     const projections: WealthProjection[] = [];
+    let liquidWealth = initialWealth;
     let cumulativeWealth = initialWealth;
     const allExpenses = getAllExpenses();
 
@@ -381,19 +382,22 @@ const Index = () => {
             const remainingBalance = property.loanAmount * (Math.pow(1 + monthlyRate, numPayments) - Math.pow(1 + monthlyRate, monthsOwned)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
             totalLoanBalance += Math.max(0, remainingBalance);
             realEstateExpenses += monthlyPayment * 12;
+            realEstateEquity += currentValue - Math.max(0, remainingBalance);
+          } else {
+            realEstateEquity += currentValue;
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-          realEstateEquity += currentValue - Math.max(0, totalLoanBalance);
         }
       });
 
       let savings = netIncome - totalExpenses;
       if (isRetired && enableRetirementMode) {
-        savings = -((cumulativeWealth + realEstateEquity) * (withdrawalRate / 100));
+        savings = -((liquidWealth + realEstateEquity) * (withdrawalRate / 100));
       }
 
-      cumulativeWealth = (cumulativeWealth * (1 + investmentReturn / 100)) + savings + realEstateEquity;
+      liquidWealth = (liquidWealth + savings) * (1 + investmentReturn / 100);
+      cumulativeWealth = liquidWealth + realEstateEquity;
 
       projections.push({
         year,
@@ -431,7 +435,8 @@ const Index = () => {
     const scenario = scenarioService.getAllScenarios().find((s) => s.id === scenarioId);
     if (!scenario) return [];
     const s = scenario.data;
-    let cumulativeWealth = s.initialWealth ?? 50000;
+    let liquidWealth = s.initialWealth ?? 50000;
+    let cumulativeWealth = liquidWealth;
     const projections: WealthProjection[] = [];
     for (let year = 1; year <= (s.projectionYears ?? 10); year++) {
       let grossIncome = 0;
@@ -504,16 +509,19 @@ const Index = () => {
             const remainingBalance = property.loanAmount * (Math.pow(1 + monthlyRate, numPayments) - Math.pow(1 + monthlyRate, monthsOwned)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
             totalLoanBalance += Math.max(0, remainingBalance);
             realEstateExpenses += monthlyPayment * 12;
+            realEstateEquity += currentValue - Math.max(0, remainingBalance);
+          } else {
+            realEstateEquity += currentValue;
           }
           realEstateExpenses += currentValue * (property.maintenanceRate / 100);
           realEstateExpenses += currentValue * (property.propertyTaxRate / 100);
-          realEstateEquity += currentValue - Math.max(0, totalLoanBalance);
         }
       });
 
       totalExpenses += realEstateExpenses;
       let savings = netIncome - totalExpenses;
-      cumulativeWealth = (cumulativeWealth * (1 + (s.investmentReturn ?? 7) / 100)) + savings + realEstateEquity;
+      liquidWealth = (liquidWealth + savings) * (1 + (s.investmentReturn ?? 7) / 100);
+      cumulativeWealth = liquidWealth + realEstateEquity;
 
       projections.push({
         year,

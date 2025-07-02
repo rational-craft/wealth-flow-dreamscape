@@ -103,6 +103,7 @@ export interface WealthProjection {
   netIncome: number;
   totalExpenses: number;
   savings: number;
+  liquidWealth: number;
   cumulativeWealth: number;
   taxes: number;
   realEstateValue: number;
@@ -526,6 +527,7 @@ main
         netIncome,
         totalExpenses,
         savings,
+        liquidWealth,
         cumulativeWealth,
         taxes,
         realEstateValue,
@@ -733,6 +735,7 @@ main
         netIncome,
         totalExpenses,
         savings,
+        liquidWealth,
         cumulativeWealth,
         taxes,
         realEstateValue,

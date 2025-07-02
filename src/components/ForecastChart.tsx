@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { WealthProjection } from '@/pages/Index';
-import { TrendingUp, BarChart3, LineChart as LineChartIcon, PieChart } from 'lucide-react';
+import { TrendingUp, BarChart3, LineChart as LineChartIcon, PieChart, Layers } from 'lucide-react';
+import NetWorthStackedChart from "@/components/NetWorthStackedChart";
 import { Slider } from '@/components/ui/slider';
 
 interface ForecastChartProps {
@@ -11,7 +12,7 @@ interface ForecastChartProps {
 }
 
 export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => {
-  const [chartType, setChartType] = React.useState<'wealth' | 'income' | 'breakdown'>('wealth');
+  const [chartType, setChartType] = React.useState<'wealth' | 'income' | 'breakdown' | 'stacked'>('wealth');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -189,6 +190,9 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => 
           <BarChart3 className="w-4 h-4" />
           Annual Breakdown
         </Button>
+        <Button onClick={() => setChartType('stacked')} className="flex items-center gap-2">
+          <Layers size={16}/> Net-Worth Layers
+        </Button>
       </div>
 
       {/* Chart Display */}
@@ -213,12 +217,26 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ projections }) => 
                 Annual Financial Breakdown
               </>
             )}
+            {chartType === 'stacked' && (
+              <>
+                <Layers className="w-5 h-5 text-blue-600" />
+                Net-Worth Composition Over Time
+              </>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {chartType === 'wealth' && renderWealthChart()}
           {chartType === 'income' && renderIncomeChart()}
           {chartType === 'breakdown' && renderBreakdownChart()}
+          {chartType === 'stacked' && (
+            <>
+              <h3 className="text-lg font-semibold my-2">
+                Net-Worth Composition Over Time
+              </h3>
+              <NetWorthStackedChart data={chartData} currencyFmt={formatCurrency} />
+            </>
+          )}
         </CardContent>
       </Card>
 

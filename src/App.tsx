@@ -9,15 +9,15 @@ import NotFoundPage from "@/pages/NotFoundPage";
 export default function App() {
   return (
     <BrowserRouter>
-      <AppShell>
-        <Routes>
+      <Routes>
+        <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/income" element={<IncomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AppShell>
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }
